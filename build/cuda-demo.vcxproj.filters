@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CudaCompile Include="..\gamma-kernels.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\gaussian-kernels.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\histogram-kernels.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\multithreaded.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\singlethreaded.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\main.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\ben\Desktop\faster-image-enhance\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\ben\Desktop\faster-image-enhance\dependencies.cuh" />
+    <None Include="C:\Users\ben\Desktop\faster-image-enhance\gamma.cuh" />
+    <None Include="C:\Users\ben\Desktop\faster-image-enhance\gaussian.cuh" />
+    <None Include="C:\Users\ben\Desktop\faster-image-enhance\histogram.cuh" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{E3711898-4AB4-3497-80D0-8C2336241B7C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
