@@ -23,6 +23,86 @@ __global__ void k_1D_gf(unsigned char* input, int rows, int cols, int mask_dim)
 	}
 }
 
+__global__ void k_1D_gf_load_balance(unsigned char* input, int rows, int cols, int load)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * load;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+	int thread_id = (tx * cols + ty);
+
+	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+
+	int offset = 1;
+
+	for (int i = 0; i < load; i++) {
+		int new_val = 0;
+		int _tx = tx;
+		int _ty = ty + i;
+
+		for (int r = 0; r < 3; r++)
+		{
+			for (int c = 0; c < 3; c++)
+			{
+				if ((_tx > 0 && _tx < rows - 1) && (_ty > 0 && _ty < cols - 1))
+				{
+					new_val += conv_kernel[r][c] * input[(_tx - offset + r) * cols + (_ty - offset + c)];
+				}
+				else
+				{
+					return;
+				}
+			}
+		}
+		input[(_tx * cols + _ty)] = static_cast<uchar>(new_val / 16);
+	}
+}
+
+__global__ void k_1D_gf_vectorized(unsigned char* input, int rows, int cols, int load)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * load;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+	int thread_id = (tx * cols + ty);
+
+	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+
+	int offset = 1;
+	int vals[4] = { 0 };
+
+	for (int i = 0; i < load; i++) {
+		int new_val = 0;
+		int _tx = tx;
+		int _ty = ty + i;
+
+		for (int r = 0; r < 3; r++)
+		{
+			for (int c = 0; c < 3; c++)
+			{
+				if ((_tx > 0 && _tx < rows - 1) && (_ty > 0 && _ty < cols - 1))
+				{
+					vals[i] += conv_kernel[r][c] * input[(_tx - offset + r) * cols + (_ty - offset + c)];
+				}
+				else
+				{
+					return;
+				}
+			}
+		}
+	}
+	switch (load)
+	{
+	case 2:
+		reinterpret_cast<uchar2*>(&input[(tx * cols + ty)])[0] = make_uchar2(vals[0] / 16, vals[1] / 16);
+		break;
+	case 3:
+		reinterpret_cast<uchar3*>(&input[(tx * cols + ty)])[0] = make_uchar3(vals[0] / 16, vals[1] / 16, vals[2] / 16);
+		break;
+	case 4:
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] / 16, vals[1] / 16, vals[2] / 16, vals[3] / 16);
+		break;
+	default:
+		break;
+	}
+}
+
 __global__ void k_1D_gf_unroll(unsigned char* input, int rows, int cols, int mask_dim)
 {
 	int ty = blockIdx.x * blockDim.x + threadIdx.x;
@@ -196,13 +276,13 @@ __global__ void k_1D_gf_combined(unsigned char* input, int rows, int cols, int m
 	input[threadId] = static_cast<uchar>(new_val / 16);
 }
 
-float gf_1d_gpu(cv::Mat input_img, cv::Mat* output_img, GAUSSIAN ver)
+float gf_1d_gpu(cv::Mat* output_img, GAUSSIAN ver)
 {
 	unsigned char* gpu_input = nullptr;
 	unsigned char* output = output_img->data;
 
-	unsigned int cols = input_img.cols;
-	unsigned int rows = input_img.rows;
+	unsigned int cols = (*output_img).cols;
+	unsigned int rows = (*output_img).rows;
 	unsigned int size = cols * rows * sizeof(unsigned char);
 
 	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
@@ -211,6 +291,7 @@ float gf_1d_gpu(cv::Mat input_img, cv::Mat* output_img, GAUSSIAN ver)
 
 	dim3 block(32, 32);
 	dim3 grid((cols + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+
 
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -246,6 +327,20 @@ float gf_1d_gpu(cv::Mat input_img, cv::Mat* output_img, GAUSSIAN ver)
 	case GAUSSIAN_combined:
 		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(dev_const_conv_kernel, conv_kernel, sizeof(uchar) * 3 * 3));
 		k_1D_gf_combined << <grid, block >> > (gpu_input, rows, cols, mask_dim);
+		break;
+	case GAUSSIAN_load_balance:
+		{
+			int load = 3;
+			dim3 grid_load_balance(((cols / load) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+			k_1D_gf_load_balance << <grid_load_balance, block >> > (gpu_input, rows, cols, load);
+		}
+		break;
+	case GAUSSIAN_vectorized:
+		{
+			int load = 3;
+			dim3 grid_load_balance(((cols / load) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+			k_1D_gf_vectorized << <grid_load_balance, block >> > (gpu_input, rows, cols, load);
+		}
 		break;
 	}
 	CHECK_CUDA_ERROR(cudaMemcpy(output, gpu_input, size, cudaMemcpyDeviceToHost));
@@ -286,6 +381,115 @@ __global__ void k_3D_gf(unsigned char* input, int rows, int cols, int mask_dim)
 
 	input[threadId] = new_val >> 4;
 }
+
+__global__ void k_3D_gf_load_balance(unsigned char* input, int rows, int cols, int load)
+{
+	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * load;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+	int threadId = (tx * cols + ty);
+
+	int offset_x = 1, offset_y = 3;
+
+	for (int l = 0; l < load; l++) {
+		int new_val = 0;
+		int _tx = tx;
+		int _ty = ty + l;
+
+		if ((tx > 2 && tx < rows - 2) && (ty > 2 && ty < cols - 2)) {
+			for (int i = 0; i < 3; i++) {
+				for (int j = 0; j < 3; j++) {
+					new_val += conv_kernel[i][j] * input[(_tx + i - offset_x) * cols + (_ty + (j * 3) - offset_y)];
+				}
+			}
+		}
+		else {
+			return;
+		}
+		input[_tx * cols + _ty] = new_val >> 4;
+	}
+}
+
+__global__ void k_1D_gf_vectorized(unsigned char* input, int rows, int cols, int load)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * load;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+	int thread_id = (tx * cols + ty);
+
+	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+
+	int offset = 1;
+	int vals[4] = { 0 };
+
+	for (int i = 0; i < load; i++) {
+		int new_val = 0;
+		int _tx = tx;
+		int _ty = ty + i;
+
+		for (int r = 0; r < 3; r++)
+		{
+			for (int c = 0; c < 3; c++)
+			{
+				if ((_tx > 0 && _tx < rows - 1) && (_ty > 0 && _ty < cols - 1))
+				{
+					vals[i] += conv_kernel[r][c] * input[(_tx - offset + r) * cols + (_ty - offset + c)];
+				}
+				else
+				{
+					return;
+				}
+			}
+		}
+	}
+	switch (load)
+	{
+	case 2:
+		reinterpret_cast<uchar2*>(&input[(tx * cols + ty)])[0] = make_uchar2(vals[0] / 16, vals[1] / 16);
+		break;
+	case 3:
+		reinterpret_cast<uchar3*>(&input[(tx * cols + ty)])[0] = make_uchar3(vals[0] / 16, vals[1] / 16, vals[2] / 16);
+		break;
+	case 4:
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] / 16, vals[1] / 16, vals[2] / 16, vals[3] / 16);
+		break;
+	default:
+		break;
+	}
+}
+
+
+__global__ void k_3D_gf_vectorized(unsigned char* input, int rows, int cols, int load)
+{
+	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * load;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+	int threadId = (tx * cols + ty);
+
+	int offset_x = 1, offset_y = 3;
+
+	int vals[4] = {0};
+
+	for (int l = 0; l < load; l++) {
+		int new_val = 0;
+		int _tx = tx;
+		int _ty = ty + l;
+
+		if ((tx > 2 && tx < rows - 2) && (ty > 2 && ty < cols - 2)) {
+			for (int i = 0; i < 3; i++) {
+				for (int j = 0; j < 3; j++) {
+					vals[i] += conv_kernel[i][j] * input[(_tx + i - offset_x) * cols + (_ty + (j * 3) - offset_y)];
+				}
+			}
+		}
+		else {
+			return;
+		}
+		input[_tx * cols + _ty] = new_val >> 4;
+	}
+}
+
 
 __global__ void k_3D_gf_unroll(unsigned char* input, int rows, int cols, int mask_dim)
 {
@@ -524,13 +728,13 @@ __global__ void k_3D_gf_combined(unsigned char* input, int rows, int cols, int m
 	input[threadId] = static_cast<uchar>(new_val / 16);
 }
 
-float gf_3d_gpu(cv::Mat input_img, cv::Mat* output_img, GAUSSIAN ver)
+float gf_3d_gpu(cv::Mat* output_img, GAUSSIAN ver)
 {
 	unsigned char* gpu_input = NULL;
 	unsigned char* output = output_img->data;
 
-	unsigned int cols = input_img.cols * 3;
-	unsigned int rows = input_img.rows;
+	unsigned int cols = (*output_img).cols * 3;
+	unsigned int rows = (*output_img).rows;
 	unsigned int size = rows * cols * sizeof(unsigned char);
 
 	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
@@ -575,6 +779,20 @@ float gf_3d_gpu(cv::Mat input_img, cv::Mat* output_img, GAUSSIAN ver)
 		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(dev_const_conv_kernel, conv_kernel, sizeof(uchar) * 3 * 3));
 		k_3D_gf_combined << <grid, block >> > (gpu_input, rows, cols, mask_dim);
 		break;
+	case GAUSSIAN_load_balance:
+		{
+			int load = 4;
+			dim3 grid_load_balance(((cols / load) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+			k_3D_gf_load_balance << <grid_load_balance, block >> > (gpu_input, rows, cols, load);
+		}
+		break;
+	case GAUSSIAN_vectorized:
+		{
+			int load = 4;
+			dim3 grid_load_balance(((cols / load) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+			k_3D_gf_vectorized << <grid_load_balance, block >> > (gpu_input, rows, cols, load);
+		}
+	break;
 	}
 
 	CHECK_CUDA_ERROR(cudaMemcpy(output, gpu_input, size, cudaMemcpyDeviceToHost));
