@@ -127,6 +127,8 @@
       <RuntimeChecks>RTC1</RuntimeChecks>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <UseHostInclude>false</UseHostInclude>
+      <MaxRegCount>128</MaxRegCount>
+      <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
     </CudaCompile>
     <Midl>
       <AdditionalIncludeDirectories>C:\Users\ben\Desktop\opencv\build\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -183,6 +185,8 @@
       <Runtime>MD</Runtime>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <UseHostInclude>false</UseHostInclude>
+      <MaxRegCount>128</MaxRegCount>
+      <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
     </CudaCompile>
     <Midl>
       <AdditionalIncludeDirectories>C:\Users\ben\Desktop\opencv\build\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -239,6 +243,8 @@
       <Runtime>MD</Runtime>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <UseHostInclude>false</UseHostInclude>
+      <MaxRegCount>128</MaxRegCount>
+      <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
     </CudaCompile>
     <Midl>
       <AdditionalIncludeDirectories>C:\Users\ben\Desktop\opencv\build\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -295,6 +301,8 @@
       <Runtime>MD</Runtime>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <UseHostInclude>false</UseHostInclude>
+      <MaxRegCount>128</MaxRegCount>
+      <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
     </CudaCompile>
     <Midl>
       <AdditionalIncludeDirectories>C:\Users\ben\Desktop\opencv\build\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

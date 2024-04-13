@@ -1,195 +1,1041 @@
 #include "gaussian.cuh"
 
-__constant__ unsigned char dev_const_conv_kernel[3][3];
+__constant__ unsigned char const_conv_kernel3x3[3][3];
 
-__global__ void k_1D_gf(unsigned char* input, int rows, int cols, int mask_dim)
+__device__ unsigned char global_conv_kernel3x3[3][3] = {{1, 2, 1}, 
+														{2, 4, 2}, 
+														{1, 2, 1} };
+
+__global__ void k_1D_gf_3x3_global(unsigned char* input, int rows, int cols)
 {
 	int ty = blockIdx.x * blockDim.x + threadIdx.x;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
-
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
 
 	int new_val = 0;
-	int offset = 1;
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				new_val += conv_kernel[i][j] * input[(tx - offset + i) * cols + ty - offset + j];
-			}
-		}
-		input[threadId] = static_cast<uchar>(new_val / 16);
+		new_val += global_conv_kernel3x3[0][0] * input[(tx - 1) * cols + ty - 1];
+		new_val += global_conv_kernel3x3[0][1] * input[(tx - 1) * cols + ty];
+		new_val += global_conv_kernel3x3[0][2] * input[(tx - 1) * cols + ty + 1];
+		new_val += global_conv_kernel3x3[1][0] * input[tx * cols + ty - 1];
+		new_val += global_conv_kernel3x3[1][1] * input[tx * cols + ty];
+		new_val += global_conv_kernel3x3[1][2] * input[tx * cols + ty + 1];
+		new_val += global_conv_kernel3x3[2][0] * input[(tx + 1) * cols + ty - 1];
+		new_val += global_conv_kernel3x3[2][1] * input[(tx + 1) * cols + ty];
+		new_val += global_conv_kernel3x3[2][2] * input[(tx + 1) * cols + ty + 1];
+
+		input[tx * cols + ty] = new_val >> 4;
 	}
 }
 
-__global__ void k_1D_gf_load_balance(unsigned char* input, int rows, int cols, int load)
+__global__ void k_1D_gf_3x3_local(unsigned char* input, int rows, int cols)
 {
-	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * load;
+	const int ty = blockIdx.x * blockDim.x + threadIdx.x;
+	const int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	unsigned char conv_kernel3x3[3][3] = { {1, 2, 1},
+											{2, 4, 2},
+											{1, 2, 1} };
+	int new_val = 0;
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		new_val += conv_kernel3x3[0][0] * input[(tx - 1) * cols + ty - 1];
+		new_val += conv_kernel3x3[0][1] * input[(tx - 1) * cols + ty];
+		new_val += conv_kernel3x3[0][2] * input[(tx - 1) * cols + ty + 1];
+		new_val += conv_kernel3x3[1][0] * input[tx * cols + ty - 1];
+		new_val += conv_kernel3x3[1][1] * input[tx * cols + ty];
+		new_val += conv_kernel3x3[1][2] * input[tx * cols + ty + 1];
+		new_val += conv_kernel3x3[2][0] * input[(tx + 1) * cols + ty - 1];
+		new_val += conv_kernel3x3[2][1] * input[(tx + 1) * cols + ty];
+		new_val += conv_kernel3x3[2][2] * input[(tx + 1) * cols + ty + 1];
+
+		input[tx * cols + ty] = new_val >> 4;
+	}
+}
+
+__global__ void k_1D_gf_3x3_constant(unsigned char* input, int rows, int cols)
+{
+	int ty = blockIdx.x * blockDim.x + threadIdx.x;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int thread_id = (tx * cols + ty);
 
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+	int new_val = 0;
 
-	int offset = 1;
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		new_val += const_conv_kernel3x3[0][0] * input[(tx - 1) * cols + ty - 1];
+		new_val += const_conv_kernel3x3[0][1] * input[(tx - 1) * cols + ty];
+		new_val += const_conv_kernel3x3[0][2] * input[(tx - 1) * cols + ty + 1];
+		new_val += const_conv_kernel3x3[1][0] * input[tx * cols + ty - 1];
+		new_val += const_conv_kernel3x3[1][1] * input[tx * cols + ty];
+		new_val += const_conv_kernel3x3[1][2] * input[tx * cols + ty + 1];
+		new_val += const_conv_kernel3x3[2][0] * input[(tx + 1) * cols + ty - 1];
+		new_val += const_conv_kernel3x3[2][1] * input[(tx + 1) * cols + ty];
+		new_val += const_conv_kernel3x3[2][2] * input[(tx + 1) * cols + ty + 1];
 
-	for (int i = 0; i < load; i++) {
-		int new_val = 0;
-		int _tx = tx;
+		input[tx * cols + ty] = new_val >> 4;
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance32_global(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 32;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	for (int i = 0; i < 32; i++) {
 		int _ty = ty + i;
+		int new_val = 0;
 
-		for (int r = 0; r < 3; r++)
-		{
-			for (int c = 0; c < 3; c++)
-			{
-				if ((_tx > 0 && _tx < rows - 1) && (_ty > 0 && _ty < cols - 1))
-				{
-					new_val += conv_kernel[r][c] * input[(_tx - offset + r) * cols + (_ty - offset + c)];
-				}
-				else
-				{
-					return;
-				}
-			}
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += global_conv_kernel3x3[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += global_conv_kernel3x3[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += global_conv_kernel3x3[1][0] * input[tx * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[1][1] * input[tx * cols + _ty];
+			new_val += global_conv_kernel3x3[1][2] * input[tx * cols + _ty + 1];
+			new_val += global_conv_kernel3x3[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += global_conv_kernel3x3[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
 		}
-		input[(_tx * cols + _ty)] = static_cast<uchar>(new_val / 16);
 	}
 }
 
-__global__ void k_1D_gf_vectorized(unsigned char* input, int rows, int cols, int load)
+__global__ void k_1D_gf_3x3_load_balance16_global(unsigned char* input, int rows, int cols)
 {
-	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * load;
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int thread_id = (tx * cols + ty);
+
+	for (int i = 0; i < 16; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += global_conv_kernel3x3[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += global_conv_kernel3x3[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += global_conv_kernel3x3[1][0] * input[tx * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[1][1] * input[tx * cols + _ty];
+			new_val += global_conv_kernel3x3[1][2] * input[tx * cols + _ty + 1];
+			new_val += global_conv_kernel3x3[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += global_conv_kernel3x3[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance12_global(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	for (int i = 0; i < 12; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += global_conv_kernel3x3[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += global_conv_kernel3x3[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += global_conv_kernel3x3[1][0] * input[tx * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[1][1] * input[tx * cols + _ty];
+			new_val += global_conv_kernel3x3[1][2] * input[tx * cols + _ty + 1];
+			new_val += global_conv_kernel3x3[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += global_conv_kernel3x3[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance8_global(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	for (int i = 0; i < 8; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += global_conv_kernel3x3[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += global_conv_kernel3x3[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += global_conv_kernel3x3[1][0] * input[tx * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[1][1] * input[tx * cols + _ty];
+			new_val += global_conv_kernel3x3[1][2] * input[tx * cols + _ty + 1];
+			new_val += global_conv_kernel3x3[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += global_conv_kernel3x3[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance4_global(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	for (int i = 0; i < 4; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += global_conv_kernel3x3[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += global_conv_kernel3x3[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += global_conv_kernel3x3[1][0] * input[tx * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[1][1] * input[tx * cols + _ty];
+			new_val += global_conv_kernel3x3[1][2] * input[tx * cols + _ty + 1];
+			new_val += global_conv_kernel3x3[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += global_conv_kernel3x3[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance2_global(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	for (int i = 0; i < 2; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+			new_val += global_conv_kernel3x3[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += global_conv_kernel3x3[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += global_conv_kernel3x3[1][0] * input[tx * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[1][1] * input[tx * cols + _ty];
+			new_val += global_conv_kernel3x3[1][2] * input[tx * cols + _ty + 1];
+			new_val += global_conv_kernel3x3[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += global_conv_kernel3x3[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += global_conv_kernel3x3[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance16_local(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
 
-	int offset = 1;
+	for (int i = 0; i < 16; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += conv_kernel[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += conv_kernel[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += conv_kernel[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += conv_kernel[1][0] * input[tx * cols + _ty - 1];
+			new_val += conv_kernel[1][1] * input[tx * cols + _ty];
+			new_val += conv_kernel[1][2] * input[tx * cols + _ty + 1];
+			new_val += conv_kernel[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += conv_kernel[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += conv_kernel[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance12_local(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+
+	for (int i = 0; i < 12; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += conv_kernel[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += conv_kernel[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += conv_kernel[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += conv_kernel[1][0] * input[tx * cols + _ty - 1];
+			new_val += conv_kernel[1][1] * input[tx * cols + _ty];
+			new_val += conv_kernel[1][2] * input[tx * cols + _ty + 1];
+			new_val += conv_kernel[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += conv_kernel[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += conv_kernel[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance8_local(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+
+	for (int i = 0; i < 8; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += conv_kernel[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += conv_kernel[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += conv_kernel[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += conv_kernel[1][0] * input[tx * cols + _ty - 1];
+			new_val += conv_kernel[1][1] * input[tx * cols + _ty];
+			new_val += conv_kernel[1][2] * input[tx * cols + _ty + 1];
+			new_val += conv_kernel[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += conv_kernel[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += conv_kernel[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance4_local(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+
+	for (int i = 0; i < 4; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += conv_kernel[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += conv_kernel[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += conv_kernel[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += conv_kernel[1][0] * input[tx * cols + _ty - 1];
+			new_val += conv_kernel[1][1] * input[tx * cols + _ty];
+			new_val += conv_kernel[1][2] * input[tx * cols + _ty + 1];
+			new_val += conv_kernel[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += conv_kernel[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += conv_kernel[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance2_local(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+
+	for (int i = 0; i < 2; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+			new_val += conv_kernel[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += conv_kernel[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += conv_kernel[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += conv_kernel[1][0] * input[tx * cols + _ty - 1];
+			new_val += conv_kernel[1][1] * input[tx * cols + _ty];
+			new_val += conv_kernel[1][2] * input[tx * cols + _ty + 1];
+			new_val += conv_kernel[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += conv_kernel[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += conv_kernel[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance16_constant(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	for (int i = 0; i < 16; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += const_conv_kernel3x3[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += const_conv_kernel3x3[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += const_conv_kernel3x3[1][0] * input[tx * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[1][1] * input[tx * cols + _ty];
+			new_val += const_conv_kernel3x3[1][2] * input[tx * cols + _ty + 1];
+			new_val += const_conv_kernel3x3[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += const_conv_kernel3x3[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance12_constant(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	for (int i = 0; i < 12; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += const_conv_kernel3x3[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += const_conv_kernel3x3[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += const_conv_kernel3x3[1][0] * input[tx * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[1][1] * input[tx * cols + _ty];
+			new_val += const_conv_kernel3x3[1][2] * input[tx * cols + _ty + 1];
+			new_val += const_conv_kernel3x3[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += const_conv_kernel3x3[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance8_constant(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	for (int i = 0; i < 8; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += const_conv_kernel3x3[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += const_conv_kernel3x3[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += const_conv_kernel3x3[1][0] * input[tx * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[1][1] * input[tx * cols + _ty];
+			new_val += const_conv_kernel3x3[1][2] * input[tx * cols + _ty + 1];
+			new_val += const_conv_kernel3x3[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += const_conv_kernel3x3[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance4_constant(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	for (int i = 0; i < 4; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += const_conv_kernel3x3[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += const_conv_kernel3x3[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += const_conv_kernel3x3[1][0] * input[tx * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[1][1] * input[tx * cols + _ty];
+			new_val += const_conv_kernel3x3[1][2] * input[tx * cols + _ty + 1];
+			new_val += const_conv_kernel3x3[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += const_conv_kernel3x3[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance2_constant(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	for (int i = 0; i < 2; i++) {
+		int _ty = ty + i;
+		int new_val = 0;
+
+		if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			new_val += const_conv_kernel3x3[0][0] * input[(tx - 1) * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[0][1] * input[(tx - 1) * cols + _ty];
+			new_val += const_conv_kernel3x3[0][2] * input[(tx - 1) * cols + _ty + 1];
+			new_val += const_conv_kernel3x3[1][0] * input[tx * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[1][1] * input[tx * cols + _ty];
+			new_val += const_conv_kernel3x3[1][2] * input[tx * cols + _ty + 1];
+			new_val += const_conv_kernel3x3[2][0] * input[(tx + 1) * cols + _ty - 1];
+			new_val += const_conv_kernel3x3[2][1] * input[(tx + 1) * cols + _ty];
+			new_val += const_conv_kernel3x3[2][2] * input[(tx + 1) * cols + _ty + 1];
+
+			input[(tx * cols + _ty)] = new_val >> 4;
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized32_global(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 32;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	uchar3 top, bot, mid;
+	int vals[32] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 31 < cols - 1)) {
+		for (int i = 0; i < 32; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += global_conv_kernel3x3[0][0] * top.x;
+				vals[i] += global_conv_kernel3x3[0][1] * top.y;
+				vals[i] += global_conv_kernel3x3[0][2] * top.z;
+				vals[i] += global_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += global_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += global_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += global_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += global_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += global_conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12] >> 4, vals[13] >> 4, vals[14] >> 4, vals[15] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 16)])[0] = make_uchar4(vals[16] >> 4, vals[17] >> 4, vals[18] >> 4, vals[19] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 20)])[0] = make_uchar4(vals[20] >> 4, vals[21] >> 4, vals[22] >> 4, vals[23] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 24)])[0] = make_uchar4(vals[24] >> 4, vals[25] >> 4, vals[26] >> 4, vals[27] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 28)])[0] = make_uchar4(vals[28] >> 4, vals[29] >> 4, vals[30] >> 4, vals[31] >> 4);
+	}
+}
+
+
+__global__ void k_1D_gf_3x3_vectorized16_global(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	uchar3 top, bot, mid;
+	int vals[16] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 15 < cols - 1)) {
+		for (int i = 0; i < 16; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += global_conv_kernel3x3[0][0] * top.x;
+				vals[i] += global_conv_kernel3x3[0][1] * top.y;
+				vals[i] += global_conv_kernel3x3[0][2] * top.z;
+				vals[i] += global_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += global_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += global_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += global_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += global_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += global_conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12] >> 4, vals[13] >> 4, vals[14] >> 4, vals[15] >> 4);
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized12_global(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	uchar3 top, bot, mid;
+	int vals[12] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 11 < cols - 1)) {
+		for (int i = 0; i < 12; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += global_conv_kernel3x3[0][0] * top.x;
+				vals[i] += global_conv_kernel3x3[0][1] * top.y;
+				vals[i] += global_conv_kernel3x3[0][2] * top.z;
+				vals[i] += global_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += global_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += global_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += global_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += global_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += global_conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+	}
+}
+__global__ void k_1D_gf_3x3_vectorized8_global(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	uchar3 top, bot, mid;
+	int vals[8] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 7 < cols - 1)) {
+		for (int i = 0; i < 8; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += global_conv_kernel3x3[0][0] * top.x;
+				vals[i] += global_conv_kernel3x3[0][1] * top.y;
+				vals[i] += global_conv_kernel3x3[0][2] * top.z;
+				vals[i] += global_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += global_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += global_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += global_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += global_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += global_conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized4_global(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	uchar3 top, bot, mid;
 	int vals[4] = { 0 };
 
-	for (int i = 0; i < load; i++) {
-		int new_val = 0;
-		int _tx = tx;
-		int _ty = ty + i;
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 3 < cols - 1)) {
+		for (int i = 0; i < 4; i++) {
+			int _ty = ty + i;
 
-		for (int r = 0; r < 3; r++)
-		{
-			for (int c = 0; c < 3; c++)
-			{
-				if ((_tx > 0 && _tx < rows - 1) && (_ty > 0 && _ty < cols - 1))
-				{
-					vals[i] += conv_kernel[r][c] * input[(_tx - offset + r) * cols + (_ty - offset + c)];
-				}
-				else
-				{
-					return;
-				}
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += global_conv_kernel3x3[0][0] * top.x;
+				vals[i] += global_conv_kernel3x3[0][1] * top.y;
+				vals[i] += global_conv_kernel3x3[0][2] * top.z;
+				vals[i] += global_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += global_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += global_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += global_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += global_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += global_conv_kernel3x3[2][2] * bot.z;
 			}
 		}
-	}
-	switch (load)
-	{
-	case 2:
-		reinterpret_cast<uchar2*>(&input[(tx * cols + ty)])[0] = make_uchar2(vals[0] / 16, vals[1] / 16);
-		break;
-	case 3:
-		reinterpret_cast<uchar3*>(&input[(tx * cols + ty)])[0] = make_uchar3(vals[0] / 16, vals[1] / 16, vals[2] / 16);
-		break;
-	case 4:
-		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] / 16, vals[1] / 16, vals[2] / 16, vals[3] / 16);
-		break;
-	default:
-		break;
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
 	}
 }
 
-__global__ void k_1D_gf_unroll(unsigned char* input, int rows, int cols, int mask_dim)
+__global__ void k_1D_gf_3x3_vectorized2_global(unsigned char* input, int rows, int cols)
 {
-	int ty = blockIdx.x * blockDim.x + threadIdx.x;
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
 
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+	uchar3 top, bot, mid;
+	int vals[2] = { 0 };
 
-	int new_val = 0;
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 1 < cols - 1)) {
+		for (int i = 0; i < 2; i++) {
+			int _ty = ty + i;
 
-	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		new_val += conv_kernel[0][0] * input[(tx - 1) * cols + ty - 1];
-		new_val += conv_kernel[0][1] * input[(tx - 1) * cols + ty];
-		new_val += conv_kernel[0][2] * input[(tx - 1) * cols + ty + 1];
-		new_val += conv_kernel[1][0] * input[tx * cols + ty - 1];
-		new_val += conv_kernel[1][1] * input[tx * cols + ty];
-		new_val += conv_kernel[1][2] * input[tx * cols + ty + 1];
-		new_val += conv_kernel[2][0] * input[(tx + 1) * cols + ty - 1];
-		new_val += conv_kernel[2][1] * input[(tx + 1) * cols + ty];
-		new_val += conv_kernel[2][2] * input[(tx + 1) * cols + ty + 1];
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
 
-		input[threadId] = static_cast<uchar>(new_val / 16);
-	}
-}
-
-__global__ void k_1D_gf_prefetch(unsigned char* input, int rows, int cols, int mask_dim)
-{
-	int ty = blockIdx.x * blockDim.x + threadIdx.x;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
-
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-
-	int new_val = 0;
-	int offset = 1;
-
-	int x_index = tx - offset;
-	int y_index = ty - offset;
-	unsigned char pixel = input[x_index * cols + y_index];
-
-	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) { /*conv element prefetch*/
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				new_val += conv_kernel[i][j] * pixel;
-				pixel = input[x_index * cols + (++y_index)];
-			}
-			y_index = ty - offset;
-			pixel = input[(++x_index) * cols + y_index];
-		}
-		input[threadId] = static_cast<uchar>(new_val / 16);
-	}
-}
-
-__global__ void k_1D_gf_constant(unsigned char* input, int rows, int cols, int mask_dim)
-{
-	int ty = blockIdx.x * blockDim.x + threadIdx.x;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
-
-	int new_val = 0;
-	int offset = 1;
-
-	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				new_val += dev_const_conv_kernel[i][j] * input[(tx - offset + i) * cols + ty - offset + j];
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += global_conv_kernel3x3[0][0] * top.x;
+				vals[i] += global_conv_kernel3x3[0][1] * top.y;
+				vals[i] += global_conv_kernel3x3[0][2] * top.z;
+				vals[i] += global_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += global_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += global_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += global_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += global_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += global_conv_kernel3x3[2][2] * bot.z;
 			}
 		}
-		input[threadId] = static_cast<uchar>(new_val / 16);
+		reinterpret_cast<uchar2*>(&input[(tx * cols + ty)])[0] = make_uchar2(vals[0] >> 4, vals[1] >> 4);
+	}
+}
+__global__ void k_1D_gf_3x3_vectorized16_local(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	unsigned char conv_kernel3x3[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+	uchar3 top, bot, mid;
+	int vals[16] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 15 < cols - 1)) {
+		for (int i = 0; i < 16; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += conv_kernel3x3[0][0] * top.x;
+				vals[i] += conv_kernel3x3[0][1] * top.y;
+				vals[i] += conv_kernel3x3[0][2] * top.z;
+				vals[i] += conv_kernel3x3[1][0] * mid.x;
+				vals[i] += conv_kernel3x3[1][1] * mid.y;
+				vals[i] += conv_kernel3x3[1][2] * mid.z;
+				vals[i] += conv_kernel3x3[2][0] * bot.x;
+				vals[i] += conv_kernel3x3[2][1] * bot.y;
+				vals[i] += conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12] >> 4, vals[13] >> 4, vals[14] >> 4, vals[15] >> 4);
 	}
 }
 
-__global__ void k_1D_gf_shared(unsigned char* input, int rows, int cols, int mask_dim)
+__global__ void k_1D_gf_3x3_vectorized12_local(unsigned char* input, int rows, int cols)
 {
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	__shared__  unsigned char cache[34][36];
+	unsigned char conv_kernel3x3[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+	uchar3 top, bot, mid;
+	int vals[12] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 11 < cols - 1)) {
+		for (int i = 0; i < 12; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += conv_kernel3x3[0][0] * top.x;
+				vals[i] += conv_kernel3x3[0][1] * top.y;
+				vals[i] += conv_kernel3x3[0][2] * top.z;
+				vals[i] += conv_kernel3x3[1][0] * mid.x;
+				vals[i] += conv_kernel3x3[1][1] * mid.y;
+				vals[i] += conv_kernel3x3[1][2] * mid.z;
+				vals[i] += conv_kernel3x3[2][0] * bot.x;
+				vals[i] += conv_kernel3x3[2][1] * bot.y;
+				vals[i] += conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+	}
+}
+__global__ void k_1D_gf_3x3_vectorized8_local(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	unsigned char conv_kernel3x3[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+	uchar3 top, bot, mid;
+	int vals[8] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 7 < cols - 1)) {
+		for (int i = 0; i < 8; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += conv_kernel3x3[0][0] * top.x;
+				vals[i] += conv_kernel3x3[0][1] * top.y;
+				vals[i] += conv_kernel3x3[0][2] * top.z;
+				vals[i] += conv_kernel3x3[1][0] * mid.x;
+				vals[i] += conv_kernel3x3[1][1] * mid.y;
+				vals[i] += conv_kernel3x3[1][2] * mid.z;
+				vals[i] += conv_kernel3x3[2][0] * bot.x;
+				vals[i] += conv_kernel3x3[2][1] * bot.y;
+				vals[i] += conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized4_local(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	unsigned char conv_kernel3x3[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+	uchar3 top, bot, mid;
+	int vals[4] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 3 < cols - 1)) {
+		for (int i = 0; i < 4; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += conv_kernel3x3[0][0] * top.x;
+				vals[i] += conv_kernel3x3[0][1] * top.y;
+				vals[i] += conv_kernel3x3[0][2] * top.z;
+				vals[i] += conv_kernel3x3[1][0] * mid.x;
+				vals[i] += conv_kernel3x3[1][1] * mid.y;
+				vals[i] += conv_kernel3x3[1][2] * mid.z;
+				vals[i] += conv_kernel3x3[2][0] * bot.x;
+				vals[i] += conv_kernel3x3[2][1] * bot.y;
+				vals[i] += conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized2_local(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	unsigned char conv_kernel3x3[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+
+	uchar3 top, bot, mid;
+	int vals[2] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 1 < cols - 1)) {
+		for (int i = 0; i < 2; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += conv_kernel3x3[0][0] * top.x;
+				vals[i] += conv_kernel3x3[0][1] * top.y;
+				vals[i] += conv_kernel3x3[0][2] * top.z;
+				vals[i] += conv_kernel3x3[1][0] * mid.x;
+				vals[i] += conv_kernel3x3[1][1] * mid.y;
+				vals[i] += conv_kernel3x3[1][2] * mid.z;
+				vals[i] += conv_kernel3x3[2][0] * bot.x;
+				vals[i] += conv_kernel3x3[2][1] * bot.y;
+				vals[i] += conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar2*>(&input[(tx * cols + ty)])[0] = make_uchar2(vals[0] >> 4, vals[1] >> 4);
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized16_constant(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	uchar3 top, bot, mid;
+	int vals[16] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 15 < cols - 1)) {
+		for (int i = 0; i < 16; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += const_conv_kernel3x3[0][0] * top.x;
+				vals[i] += const_conv_kernel3x3[0][1] * top.y;
+				vals[i] += const_conv_kernel3x3[0][2] * top.z;
+				vals[i] += const_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += const_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += const_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += const_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += const_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += const_conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12] >> 4, vals[13] >> 4, vals[14] >> 4, vals[15] >> 4);
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized12_constant(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	uchar3 top, bot, mid;
+	int vals[12] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 11 < cols - 1)) {
+		for (int i = 0; i < 12; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += const_conv_kernel3x3[0][0] * top.x;
+				vals[i] += const_conv_kernel3x3[0][1] * top.y;
+				vals[i] += const_conv_kernel3x3[0][2] * top.z;
+				vals[i] += const_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += const_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += const_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += const_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += const_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += const_conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+	}
+}
+__global__ void k_1D_gf_3x3_vectorized8_constant(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	uchar3 top, bot, mid;
+	int vals[8] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 7 < cols - 1)) {
+		for (int i = 0; i < 8; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += const_conv_kernel3x3[0][0] * top.x;
+				vals[i] += const_conv_kernel3x3[0][1] * top.y;
+				vals[i] += const_conv_kernel3x3[0][2] * top.z;
+				vals[i] += const_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += const_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += const_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += const_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += const_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += const_conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized4_constant(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	uchar3 top, bot, mid;
+	int vals[4] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 3 < cols - 1)) {
+		for (int i = 0; i < 4; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += const_conv_kernel3x3[0][0] * top.x;
+				vals[i] += const_conv_kernel3x3[0][1] * top.y;
+				vals[i] += const_conv_kernel3x3[0][2] * top.z;
+				vals[i] += const_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += const_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += const_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += const_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += const_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += const_conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized2_constant(unsigned char* input, int rows, int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	uchar3 top, bot, mid;
+	int vals[2] = { 0 };
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty + 1 < cols - 1)) {
+		for (int i = 0; i < 2; i++) {
+			int _ty = ty + i;
+
+			top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + _ty - 1)])[0];
+			mid = reinterpret_cast<uchar3*>(&input[((tx)*cols + _ty - 1)])[0];
+			bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + _ty - 1)])[0];
+
+			if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+				vals[i] += const_conv_kernel3x3[0][0] * top.x;
+				vals[i] += const_conv_kernel3x3[0][1] * top.y;
+				vals[i] += const_conv_kernel3x3[0][2] * top.z;
+				vals[i] += const_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += const_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += const_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += const_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += const_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += const_conv_kernel3x3[2][2] * bot.z;
+			}
+		}
+		reinterpret_cast<uchar2*>(&input[(tx * cols + ty)])[0] = make_uchar2(vals[0] >> 4, vals[1] >> 4);
+	}
+}
+
+__global__ void k_1D_gf_3x3_shared(unsigned char* input, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][34];
 
 	int ty = blockIdx.x * blockDim.x + threadIdx.x;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
 
-	unsigned int bx = threadIdx.y;
-	unsigned int by = threadIdx.x;
+	unsigned int cy = threadIdx.x + 1;
+	unsigned int cx = threadIdx.y + 1;
 
-	unsigned int cy = by + 1;
-	unsigned int cx = bx + 1;
+	int new_val = 0;
 
 	cache[cx][cy] = input[tx * cols + ty];
 
@@ -207,73 +1053,802 @@ __global__ void k_1D_gf_shared(unsigned char* input, int rows, int cols, int mas
 	}
 	__syncthreads();
 
-	int new_val = 0;
-	int offset = 1;
-
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				new_val += conv_kernel[i][j] * cache[(cx - offset + i)][cy - offset + j];
+		new_val += global_conv_kernel3x3[0][0] * cache[cx - 1][cy - 1];
+		new_val += global_conv_kernel3x3[0][1] * cache[cx - 1][cy];
+		new_val += global_conv_kernel3x3[0][2] * cache[cx - 1][cy + 1];
+
+		new_val += global_conv_kernel3x3[1][0] * cache[cx][cy - 1];
+		new_val += global_conv_kernel3x3[1][1] * cache[cx][cy];
+		new_val += global_conv_kernel3x3[1][2] * cache[cx][cy + 1];
+
+		new_val += global_conv_kernel3x3[2][0] * cache[cx + 1][cy - 1];
+		new_val += global_conv_kernel3x3[2][1] * cache[cx + 1][cy];
+		new_val += global_conv_kernel3x3[2][2] * cache[cx + 1][cy + 1];
+
+		input[tx * cols + ty] = new_val >> 4;
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance16_shared(unsigned char* input, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][514];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 16 + 1;
+	int cx = threadIdx.y + 1;
+
+	cache[cx][cy] = input[tx * cols + ty];
+	cache[cx][cy + 1] = input[tx * cols + ty + 1];
+	cache[cx][cy + 2] = input[tx * cols + ty + 2];
+	cache[cx][cy + 3] = input[tx * cols + ty + 3];
+	cache[cx][cy + 4] = input[tx * cols + ty + 4];
+	cache[cx][cy + 5] = input[tx * cols + ty + 5];
+	cache[cx][cy + 6] = input[tx * cols + ty + 6];
+	cache[cx][cy + 7] = input[tx * cols + ty + 7];
+	cache[cx][cy + 8] = input[tx * cols + ty + 8];
+	cache[cx][cy + 9] = input[tx * cols + ty + 9];
+	cache[cx][cy + 10] = input[tx * cols + ty + 10];
+	cache[cx][cy + 11] = input[tx * cols + ty + 11];
+	cache[cx][cy + 12] = input[tx * cols + ty + 12];
+	cache[cx][cy + 13] = input[tx * cols + ty + 13];
+	cache[cx][cy + 14] = input[tx * cols + ty + 14];
+	cache[cx][cy + 15] = input[tx * cols + ty + 15];
+
+	if ((tx > 0 && tx < rows - 1) && (ty < cols - 1)) {
+		if (cx == 1) { /*top row*/
+			cache[0][cy] = input[((tx - 1) * cols + ty)];
+			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
+			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
+			cache[0][cy + 3] = input[((tx - 1) * cols + ty + 3)];
+			cache[0][cy + 4] = input[((tx - 1) * cols + ty + 4)];
+			cache[0][cy + 5] = input[((tx - 1) * cols + ty + 5)];
+			cache[0][cy + 6] = input[((tx - 1) * cols + ty + 6)];
+			cache[0][cy + 7] = input[((tx - 1) * cols + ty + 7)];
+			cache[0][cy + 8] = input[((tx - 1) * cols + ty + 8)];
+			cache[0][cy + 9] = input[((tx - 1) * cols + ty + 9)];
+			cache[0][cy + 10] = input[((tx - 1) * cols + ty + 10)];
+			cache[0][cy + 11] = input[((tx - 1) * cols + ty + 11)];
+			cache[0][cy + 12] = input[((tx - 1) * cols + ty + 12)];
+			cache[0][cy + 13] = input[((tx - 1) * cols + ty + 13)];
+			cache[0][cy + 14] = input[((tx - 1) * cols + ty + 14)];
+			cache[0][cy + 15] = input[((tx - 1) * cols + ty + 15)];
+		}
+		if (cx == 32) { /*bottom row*/
+			cache[33][cy] = input[((tx + 1) * cols + ty)];
+			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
+			cache[33][cy + 2] = input[((tx + 1) * cols + ty + 2)];
+			cache[33][cy + 3] = input[((tx + 1) * cols + ty + 3)];
+			cache[33][cy + 4] = input[((tx + 1) * cols + ty + 4)];
+			cache[33][cy + 5] = input[((tx + 1) * cols + ty + 5)];
+			cache[33][cy + 6] = input[((tx + 1) * cols + ty + 6)];
+			cache[33][cy + 7] = input[((tx + 1) * cols + ty + 7)];
+			cache[33][cy + 8] = input[((tx + 1) * cols + ty + 8)];
+			cache[33][cy + 9] = input[((tx + 1) * cols + ty + 9)];
+			cache[33][cy + 10] = input[((tx + 1) * cols + ty + 10)];
+			cache[33][cy + 11] = input[((tx + 1) * cols + ty + 11)];
+			cache[33][cy + 12] = input[((tx + 1) * cols + ty + 12)];
+			cache[33][cy + 13] = input[((tx + 1) * cols + ty + 13)];
+			cache[33][cy + 14] = input[((tx + 1) * cols + ty + 14)];
+			cache[33][cy + 15] = input[((tx + 1) * cols + ty + 15)];
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 497) {/*right column*/
+			cache[cx][513] = input[((tx)*cols + ty + 16)];
+		}
+
+		__syncthreads();
+
+		for (int i = 0; i < 16; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			int new_val = 0;
+			if ( _ty < cols - 1) {
+				new_val += global_conv_kernel3x3[0][0] * cache[cx - 1][_cy - 1];
+				new_val += global_conv_kernel3x3[0][1] * cache[cx - 1][_cy];
+				new_val += global_conv_kernel3x3[0][2] * cache[cx - 1][_cy + 1];
+
+				new_val += global_conv_kernel3x3[1][0] * cache[cx][_cy - 1];
+				new_val += global_conv_kernel3x3[1][1] * cache[cx][_cy];
+				new_val += global_conv_kernel3x3[1][2] * cache[cx][_cy + 1];
+
+				new_val += global_conv_kernel3x3[2][0] * cache[cx + 1][_cy - 1];
+				new_val += global_conv_kernel3x3[2][1] * cache[cx + 1][_cy];
+				new_val += global_conv_kernel3x3[2][2] * cache[cx + 1][_cy + 1];
+
+				input[tx * cols + _ty] = new_val >> 4;
 			}
 		}
 	}
-	else {
-		return;
-	}
-
-	input[threadId] = static_cast<uchar>(new_val / 16);
 }
 
-__global__ void k_1D_gf_combined(unsigned char* input, int rows, int cols, int mask_dim)
+__global__ void k_1D_gf_3x3_load_balance12_shared(unsigned char* input, int rows, int cols)
 {
-	__shared__  unsigned char cache[34][36];
+	__shared__  unsigned char cache[34][386];
 
-	int ty = blockIdx.x * blockDim.x + threadIdx.x;
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
 
-	unsigned int bx = threadIdx.y;
-	unsigned int by = threadIdx.x;
-
-	unsigned int cy = by + 1;
-	unsigned int cx = bx + 1;
+	int cy = threadIdx.x * 12 + 1;
+	int cx = threadIdx.y + 1;
 
 	cache[cx][cy] = input[tx * cols + ty];
-
-	if (cx == 1) {
-		cache[0][cy] = input[((tx - 1) * cols + ty)];
-	}
-	if (cx == 32) {
-		cache[33][cy] = input[((tx + 1) * cols + ty)];
-	}
-	if (cy == 1) {
-		cache[cx][0] = input[((tx)*cols + ty - 1)];
-	}
-	if (cy == 32) {
-		cache[cx][33] = input[((tx)*cols + ty + 1)];
-	}
-
-	__syncthreads();
-	int new_val = 0;
+	cache[cx][cy + 1] = input[tx * cols + ty + 1];
+	cache[cx][cy + 2] = input[tx * cols + ty + 2];
+	cache[cx][cy + 3] = input[tx * cols + ty + 3];
+	cache[cx][cy + 4] = input[tx * cols + ty + 4];
+	cache[cx][cy + 5] = input[tx * cols + ty + 5];
+	cache[cx][cy + 6] = input[tx * cols + ty + 6];
+	cache[cx][cy + 7] = input[tx * cols + ty + 7];
+	cache[cx][cy + 8] = input[tx * cols + ty + 8];
+	cache[cx][cy + 9] = input[tx * cols + ty + 9];
+	cache[cx][cy + 10] = input[tx * cols + ty + 10];
+	cache[cx][cy + 11] = input[tx * cols + ty + 11];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		new_val += dev_const_conv_kernel[0][0] * cache[cx - 1][cy - 1];
-		new_val += dev_const_conv_kernel[0][1] * cache[cx - 1][cy];
-		new_val += dev_const_conv_kernel[0][2] * cache[cx - 1][cy + 1];
+		if (cx == 1) { /*top row*/
+			cache[0][cy] = input[((tx - 1) * cols + ty)];
+			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
+			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
+			cache[0][cy + 3] = input[((tx - 1) * cols + ty + 3)];
+			cache[0][cy + 4] = input[((tx - 1) * cols + ty + 4)];
+			cache[0][cy + 5] = input[((tx - 1) * cols + ty + 5)];
+			cache[0][cy + 6] = input[((tx - 1) * cols + ty + 6)];
+			cache[0][cy + 7] = input[((tx - 1) * cols + ty + 7)];
+			cache[0][cy + 8] = input[((tx - 1) * cols + ty + 8)];
+			cache[0][cy + 9] = input[((tx - 1) * cols + ty + 9)];
+			cache[0][cy + 10] = input[((tx - 1) * cols + ty + 10)];
+			cache[0][cy + 11] = input[((tx - 1) * cols + ty + 11)];
+		}
+		if (cx == 32) { /*bottom row*/
+			cache[33][cy] = input[((tx + 1) * cols + ty)];
+			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
+			cache[33][cy + 2] = input[((tx + 1) * cols + ty + 2)];
+			cache[33][cy + 3] = input[((tx + 1) * cols + ty + 3)];
+			cache[33][cy + 4] = input[((tx + 1) * cols + ty + 4)];
+			cache[33][cy + 5] = input[((tx + 1) * cols + ty + 5)];
+			cache[33][cy + 6] = input[((tx + 1) * cols + ty + 6)];
+			cache[33][cy + 7] = input[((tx + 1) * cols + ty + 7)];
+			cache[33][cy + 8] = input[((tx + 1) * cols + ty + 8)];
+			cache[33][cy + 9] = input[((tx + 1) * cols + ty + 9)];
+			cache[33][cy + 10] = input[((tx + 1) * cols + ty + 10)];
+			cache[33][cy + 11] = input[((tx + 1) * cols + ty + 11)];
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 373) {/*right column*/
+			cache[cx][385] = input[((tx)*cols + ty + 12)];
+		}
 
-		new_val += dev_const_conv_kernel[1][0] * cache[cx][cy - 1];
-		new_val += dev_const_conv_kernel[1][1] * cache[cx][cy];
-		new_val += dev_const_conv_kernel[1][2] * cache[cx][cy + 1];
+		__syncthreads();
 
-		new_val += dev_const_conv_kernel[2][0] * cache[cx + 1][cy - 1];
-		new_val += dev_const_conv_kernel[2][1] * cache[cx + 1][cy];
-		new_val += dev_const_conv_kernel[2][2] * cache[cx + 1][cy + 1];
+		for (int i = 0; i < 12; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			int new_val = 0;
+			if (_ty < cols - 1) {
+				new_val += global_conv_kernel3x3[0][0] * cache[cx - 1][_cy - 1];
+				new_val += global_conv_kernel3x3[0][1] * cache[cx - 1][_cy];
+				new_val += global_conv_kernel3x3[0][2] * cache[cx - 1][_cy + 1];
+
+				new_val += global_conv_kernel3x3[1][0] * cache[cx][_cy - 1];
+				new_val += global_conv_kernel3x3[1][1] * cache[cx][_cy];
+				new_val += global_conv_kernel3x3[1][2] * cache[cx][_cy + 1];
+
+				new_val += global_conv_kernel3x3[2][0] * cache[cx + 1][_cy - 1];
+				new_val += global_conv_kernel3x3[2][1] * cache[cx + 1][_cy];
+				new_val += global_conv_kernel3x3[2][2] * cache[cx + 1][_cy + 1];
+
+				input[tx * cols + _ty] = new_val >> 4;
+			}
+		}
 	}
-	else {
-		return;
-	}
+}
 
-	input[threadId] = static_cast<uchar>(new_val / 16);
+__global__ void k_1D_gf_3x3_load_balance8_shared(unsigned char* input, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][260];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 8 + 1;
+	int cx = threadIdx.y + 1;
+
+	cache[cx][cy] = input[tx * cols + ty];
+	cache[cx][cy + 1] = input[tx * cols + ty + 1];
+	cache[cx][cy + 2] = input[tx * cols + ty + 2];
+	cache[cx][cy + 3] = input[tx * cols + ty + 3];
+	cache[cx][cy + 4] = input[tx * cols + ty + 4];
+	cache[cx][cy + 5] = input[tx * cols + ty + 5];
+	cache[cx][cy + 6] = input[tx * cols + ty + 6];
+	cache[cx][cy + 7] = input[tx * cols + ty + 7];
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		if (cx == 1) { /*top row*/
+			cache[0][cy] = input[((tx - 1) * cols + ty)];
+			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
+			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
+			cache[0][cy + 3] = input[((tx - 1) * cols + ty + 3)];
+			cache[0][cy + 4] = input[((tx - 1) * cols + ty + 4)];
+			cache[0][cy + 5] = input[((tx - 1) * cols + ty + 5)];
+			cache[0][cy + 6] = input[((tx - 1) * cols + ty + 6)];
+			cache[0][cy + 7] = input[((tx - 1) * cols + ty + 7)];
+		}
+		if (cx == 32) { /*bottom row*/
+			cache[33][cy] = input[((tx + 1) * cols + ty)];
+			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
+			cache[33][cy + 2] = input[((tx + 1) * cols + ty + 2)];
+			cache[33][cy + 3] = input[((tx + 1) * cols + ty + 3)];
+			cache[33][cy + 4] = input[((tx + 1) * cols + ty + 4)];
+			cache[33][cy + 5] = input[((tx + 1) * cols + ty + 5)];
+			cache[33][cy + 6] = input[((tx + 1) * cols + ty + 6)];
+			cache[33][cy + 7] = input[((tx + 1) * cols + ty + 7)];
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 249) {/*right column*/
+			cache[cx][257] = input[((tx)*cols + ty + 8)];
+		}
+		__syncthreads();
+
+		for (int i = 0; i < 8; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			int new_val = 0;
+			if (_ty < cols - 1) {
+				new_val += global_conv_kernel3x3[0][0] * cache[cx - 1][_cy - 1];
+				new_val += global_conv_kernel3x3[0][1] * cache[cx - 1][_cy];
+				new_val += global_conv_kernel3x3[0][2] * cache[cx - 1][_cy + 1];
+
+				new_val += global_conv_kernel3x3[1][0] * cache[cx][_cy - 1];
+				new_val += global_conv_kernel3x3[1][1] * cache[cx][_cy];
+				new_val += global_conv_kernel3x3[1][2] * cache[cx][_cy + 1];
+
+				new_val += global_conv_kernel3x3[2][0] * cache[cx + 1][_cy - 1];
+				new_val += global_conv_kernel3x3[2][1] * cache[cx + 1][_cy];
+				new_val += global_conv_kernel3x3[2][2] * cache[cx + 1][_cy + 1];
+
+				input[tx * cols + _ty] = new_val >> 4;
+			}
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance4_shared(unsigned char* input, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][130];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 4 + 1;
+	int cx = threadIdx.y + 1;
+
+	cache[cx][cy] = input[tx * cols + ty];
+	cache[cx][cy + 1] = input[tx * cols + ty + 1];
+	cache[cx][cy + 2] = input[tx * cols + ty + 2];
+	cache[cx][cy + 3] = input[tx * cols + ty + 3];
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		if (cx == 1) { /*top row*/
+			cache[0][cy] = input[((tx - 1) * cols + ty)];
+			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
+			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
+			cache[0][cy + 3] = input[((tx - 1) * cols + ty + 3)];
+		}
+		if (cx == 32) { /*bottom row*/
+			cache[33][cy] = input[((tx + 1) * cols + ty)];
+			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
+			cache[33][cy + 2] = input[((tx + 1) * cols + ty + 2)];
+			cache[33][cy + 3] = input[((tx + 1) * cols + ty + 3)];
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 125) {/*right column*/
+			cache[cx][129] = input[((tx)*cols + ty + 4)];
+		}
+		__syncthreads();
+
+		for (int i = 0; i < 4; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			int new_val = 0;
+			if (_ty < cols - 1) {
+				new_val += global_conv_kernel3x3[0][0] * cache[cx - 1][_cy - 1];
+				new_val += global_conv_kernel3x3[0][1] * cache[cx - 1][_cy];
+				new_val += global_conv_kernel3x3[0][2] * cache[cx - 1][_cy + 1];
+
+				new_val += global_conv_kernel3x3[1][0] * cache[cx][_cy - 1];
+				new_val += global_conv_kernel3x3[1][1] * cache[cx][_cy];
+				new_val += global_conv_kernel3x3[1][2] * cache[cx][_cy + 1];
+
+				new_val += global_conv_kernel3x3[2][0] * cache[cx + 1][_cy - 1];
+				new_val += global_conv_kernel3x3[2][1] * cache[cx + 1][_cy];
+				new_val += global_conv_kernel3x3[2][2] * cache[cx + 1][_cy + 1];
+
+				input[tx * cols + _ty] = new_val >> 4;
+			}
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance2_shared(unsigned char* input, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][66];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 2 + 1;
+	int cx = threadIdx.y + 1;
+
+	cache[cx][cy] = input[tx * cols + ty];
+	cache[cx][cy + 1] = input[tx * cols + ty + 1];
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		if (cx == 1) { /*top row*/
+			cache[0][cy] = input[((tx - 1) * cols + ty)];
+			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
+		}
+		if (cx == 32) { /*bottom row*/
+			cache[33][cy] = input[((tx + 1) * cols + ty)];
+			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 63) {/*right column*/
+			cache[cx][65] = input[((tx)*cols + ty + 2)];
+		}
+		__syncthreads();
+
+		for (int i = 0; i < 2; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			int new_val = 0;
+			if ( _ty < cols - 1) {
+				new_val += global_conv_kernel3x3[0][0] * cache[cx - 1][_cy - 1];
+				new_val += global_conv_kernel3x3[0][1] * cache[cx - 1][_cy];
+				new_val += global_conv_kernel3x3[0][2] * cache[cx - 1][_cy + 1];
+
+				new_val += global_conv_kernel3x3[1][0] * cache[cx][_cy - 1];
+				new_val += global_conv_kernel3x3[1][1] * cache[cx][_cy];
+				new_val += global_conv_kernel3x3[1][2] * cache[cx][_cy + 1];
+
+				new_val += global_conv_kernel3x3[2][0] * cache[cx + 1][_cy - 1];
+				new_val += global_conv_kernel3x3[2][1] * cache[cx + 1][_cy];
+				new_val += global_conv_kernel3x3[2][2] * cache[cx + 1][_cy + 1];
+
+				input[tx * cols + _ty] = new_val >> 4;
+			}
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized16_shared(unsigned char* input, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][514];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 16 + 1;
+	int cx = threadIdx.y + 1;
+
+	uchar4 u4;
+	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty])[0];
+
+	cache[cx][cy] = u4.x;
+	cache[cx][cy + 1] = u4.y;
+	cache[cx][cy + 2] = u4.z;
+	cache[cx][cy + 3] = u4.w;
+
+	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 4])[0];
+	cache[cx][cy + 4] = u4.x;
+	cache[cx][cy + 5] = u4.y;
+	cache[cx][cy + 6] = u4.z;
+	cache[cx][cy + 7] = u4.w;
+
+	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 8])[0];
+	cache[cx][cy + 8] = u4.x;
+	cache[cx][cy + 9] = u4.y;
+	cache[cx][cy + 10] = u4.z;
+	cache[cx][cy + 11] = u4.w;
+
+	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 12])[0];
+	cache[cx][cy + 12] = u4.x;
+	cache[cx][cy + 13] = u4.y;
+	cache[cx][cy + 14] = u4.z;
+	cache[cx][cy + 15] = u4.w;
+
+	if ((tx > 0 && tx < rows - 1) && (ty < cols - 1)) {
+		if (cx == 1) { /*top row*/
+			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1) * cols + ty])[0];
+			cache[0][cy] = u4.x;
+			cache[0][cy + 1] = u4.y;
+			cache[0][cy + 2] = u4.z;
+			cache[0][cy + 3] = u4.w;
+
+			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1) * cols + ty + 4])[0];
+			cache[0][cy + 4] = u4.x;
+			cache[0][cy + 5] = u4.y;
+			cache[0][cy + 6] = u4.z;
+			cache[0][cy + 7] = u4.w;
+
+			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1) * cols + ty + 8])[0];
+			cache[0][cy + 8] = u4.x;
+			cache[0][cy + 9] = u4.y;
+			cache[0][cy + 10] = u4.z;
+			cache[0][cy + 11] = u4.w;
+
+			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1) * cols + ty + 12])[0];
+			cache[0][cy + 12] = u4.x;
+			cache[0][cy + 13] = u4.y;
+			cache[0][cy + 14] = u4.z;
+			cache[0][cy + 15] = u4.w;
+		}
+		if (cx == 32) { /*bottom row*/
+			u4 = reinterpret_cast<uchar4*>(&input[(tx + 1) * cols + ty])[0];
+			cache[33][cy] = u4.x;
+			cache[33][cy + 1] = u4.y;
+			cache[33][cy + 2] = u4.z;
+			cache[33][cy + 3] = u4.w;
+			u4 = reinterpret_cast<uchar4*>(&input[(tx + 1) * cols + ty + 4])[0];
+			cache[33][cy + 4] = u4.x;
+			cache[33][cy + 5] = u4.y;
+			cache[33][cy + 6] = u4.z;
+			cache[33][cy + 7] = u4.w;
+			u4 = reinterpret_cast<uchar4*>(&input[(tx + 1) * cols + ty + 8])[0];
+			cache[33][cy + 8] = u4.x;
+			cache[33][cy + 9] = u4.y;
+			cache[33][cy + 10] = u4.z;
+			cache[33][cy + 11] = u4.w;
+			u4 = reinterpret_cast<uchar4*>(&input[(tx + 1) * cols + ty + 12])[0];
+			cache[33][cy + 12] = u4.x;
+			cache[33][cy + 13] = u4.y;
+			cache[33][cy + 14] = u4.z;
+			cache[33][cy + 15] = u4.w;
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 497) {/*right column*/
+			cache[cx][513] = input[((tx)*cols + ty + 16)];
+		}
+
+		__syncthreads();
+		int vals[16] = { 0 };
+		for (int i = 0; i < 16; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			if (_ty < cols - 1) {
+				vals[i] += global_conv_kernel3x3[0][0] * cache[cx - 1][_cy - 1];
+				vals[i] += global_conv_kernel3x3[0][1] * cache[cx - 1][_cy];
+				vals[i] += global_conv_kernel3x3[0][2] * cache[cx - 1][_cy + 1];
+				vals[i] += global_conv_kernel3x3[1][0] * cache[cx][_cy - 1];
+				vals[i] += global_conv_kernel3x3[1][1] * cache[cx][_cy];
+				vals[i] += global_conv_kernel3x3[1][2] * cache[cx][_cy + 1];
+				vals[i] += global_conv_kernel3x3[2][0] * cache[cx + 1][_cy - 1];
+				vals[i] += global_conv_kernel3x3[2][1] * cache[cx + 1][_cy];
+				vals[i] += global_conv_kernel3x3[2][2] * cache[cx + 1][_cy + 1];
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12] >> 4, vals[13] >> 4, vals[14] >> 4, vals[15] >> 4);
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized12_shared(unsigned char* input, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][386];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 12 + 1;
+	int cx = threadIdx.y + 1;
+	
+	uchar4 u4;
+	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty])[0];
+
+	cache[cx][cy] = u4.x;
+	cache[cx][cy + 1] = u4.y;
+	cache[cx][cy + 2] = u4.z;
+	cache[cx][cy + 3] = u4.w;
+
+	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 4])[0];
+	cache[cx][cy + 4] = u4.x;
+	cache[cx][cy + 5] = u4.y;
+	cache[cx][cy + 6] = u4.z;
+	cache[cx][cy + 7] = u4.w;
+
+	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 8])[0];
+	cache[cx][cy + 8] = u4.x;
+	cache[cx][cy + 9] = u4.y;
+	cache[cx][cy + 10] = u4.z;
+	cache[cx][cy + 11] = u4.w;
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		if (cx == 1) { /*top row*/
+			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1 ) * cols + ty])[0];
+			cache[0][cy] = u4.x;
+			cache[0][cy + 1] = u4.y;
+			cache[0][cy + 2] = u4.z;
+			cache[0][cy + 3] = u4.w;
+
+			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1) * cols + ty + 4])[0];
+			cache[0][cy + 4] = u4.x;
+			cache[0][cy + 5] = u4.y;
+			cache[0][cy + 6] = u4.z;
+			cache[0][cy + 7] = u4.w;
+
+			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1) * cols + ty + 8])[0];
+			cache[0][cy + 8] = u4.x;
+			cache[0][cy + 9] = u4.y;
+			cache[0][cy + 10] = u4.z; 
+			cache[0][cy + 11] = u4.w; 
+		}
+		if (cx == 32) { /*bottom row*/
+			u4 = reinterpret_cast<uchar4*>(&input[(tx + 1) * cols + ty])[0];
+			cache[33][cy] = u4.x;
+			cache[33][cy + 1] = u4.y;
+			cache[33][cy + 2] = u4.z;
+			cache[33][cy + 3] = u4.w;
+			u4 = reinterpret_cast<uchar4*>(&input[(tx + 1) * cols + ty + 4])[0];
+			cache[33][cy + 4] = u4.x;
+			cache[33][cy + 5] = u4.y;
+			cache[33][cy + 6] = u4.z;
+			cache[33][cy + 7] = u4.w;
+			u4 = reinterpret_cast<uchar4*>(&input[(tx + 1) * cols + ty + 8])[0];
+			cache[33][cy + 8] = u4.x;
+			cache[33][cy + 9] = u4.y;
+			cache[33][cy + 10] = u4.z;
+			cache[33][cy + 11] = u4.w;
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 373) {/*right column*/
+			cache[cx][385] = input[((tx)*cols + ty + 12)];
+		}
+		__syncthreads();
+		int vals[12] = { 0 };
+		for (int i = 0; i < 12; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			if (_ty < cols - 1) {
+				vals[i] += global_conv_kernel3x3[0][0] * cache[cx - 1][_cy - 1];
+				vals[i] += global_conv_kernel3x3[0][1] * cache[cx - 1][_cy];
+				vals[i] += global_conv_kernel3x3[0][2] * cache[cx - 1][_cy + 1];
+				vals[i] += global_conv_kernel3x3[1][0] * cache[cx][_cy - 1];
+				vals[i] += global_conv_kernel3x3[1][1] * cache[cx][_cy];
+				vals[i] += global_conv_kernel3x3[1][2] * cache[cx][_cy + 1];
+				vals[i] += global_conv_kernel3x3[2][0] * cache[cx + 1][_cy - 1];
+				vals[i] += global_conv_kernel3x3[2][1] * cache[cx + 1][_cy];
+				vals[i] += global_conv_kernel3x3[2][2] * cache[cx + 1][_cy + 1];
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized8_shared(unsigned char* input, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][260];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 8 + 1;
+	int cx = threadIdx.y + 1;
+
+	uchar4 u4;
+
+	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty])[0];
+
+	cache[cx][cy] = u4.x;
+	cache[cx][cy + 1] = u4.y;
+	cache[cx][cy + 2] = u4.z;
+	cache[cx][cy + 3] = u4.w;
+
+	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 4])[0];
+	cache[cx][cy + 4] = u4.x;
+	cache[cx][cy + 5] = u4.y;
+	cache[cx][cy + 6] = u4.z;
+	cache[cx][cy + 7] = u4.w;
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		if (cx == 1) { /*top row*/
+			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1) * cols + ty])[0];
+			cache[0][cy] = u4.x;
+			cache[0][cy + 1] = u4.y;
+			cache[0][cy + 2] = u4.z;
+			cache[0][cy + 3] = u4.w;
+			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1) * cols + ty + 4])[0];
+			cache[0][cy + 4] = u4.x;
+			cache[0][cy + 5] = u4.y;
+			cache[0][cy + 6] = u4.z;
+			cache[0][cy + 7] = u4.w;
+		}
+		if (cx == 32) { /*bottom row*/
+			u4 = reinterpret_cast<uchar4*>(&input[(tx + 1) * cols + ty])[0];
+			cache[33][cy] = u4.x;
+			cache[33][cy + 1] = u4.y;
+			cache[33][cy + 2] = u4.z;
+			cache[33][cy + 3] = u4.w;
+			u4 = reinterpret_cast<uchar4*>(&input[(tx + 1) * cols + ty + 4])[0];
+			cache[33][cy + 4] = u4.x;
+			cache[33][cy + 5] = u4.y;
+			cache[33][cy + 6] = u4.z;
+			cache[33][cy + 7] = u4.w;
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 249) {/*right column*/
+			cache[cx][257] = input[((tx)*cols + ty + 8)];
+		}
+		__syncthreads();
+		int vals[8] = { 0 };
+		for (int i = 0; i < 8; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			if (_ty < cols - 1) {
+				vals[i] += global_conv_kernel3x3[0][0] * cache[cx - 1][_cy - 1];
+				vals[i] += global_conv_kernel3x3[0][1] * cache[cx - 1][_cy];
+				vals[i] += global_conv_kernel3x3[0][2] * cache[cx - 1][_cy + 1];
+				vals[i] += global_conv_kernel3x3[1][0] * cache[cx][_cy - 1];
+				vals[i] += global_conv_kernel3x3[1][1] * cache[cx][_cy];
+				vals[i] += global_conv_kernel3x3[1][2] * cache[cx][_cy + 1];
+				vals[i] += global_conv_kernel3x3[2][0] * cache[cx + 1][_cy - 1];
+				vals[i] += global_conv_kernel3x3[2][1] * cache[cx + 1][_cy];
+				vals[i] += global_conv_kernel3x3[2][2] * cache[cx + 1][_cy + 1];
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+	}
+}
+
+__global__ void k_1D_gf_3x3_vectorized4_shared(unsigned char* input, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][130];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 4 + 1;
+	int cx = threadIdx.y + 1;
+
+	uchar4 u4;
+
+	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty])[0];
+	cache[cx][cy] = u4.x;
+	cache[cx][cy + 1] = u4.y;
+	cache[cx][cy + 2] = u4.z;
+	cache[cx][cy + 3] = u4.w;
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		if (cx == 1) { /*top row*/
+			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1) * cols + ty])[0];
+			cache[0][cy] = u4.x;
+			cache[0][cy + 1] = u4.y;
+			cache[0][cy + 2] = u4.z;
+			cache[0][cy + 3] = u4.w;
+		}
+		if (cx == 32) { /*bottom row*/
+			u4 = reinterpret_cast<uchar4*>(&input[(tx + 1) * cols + ty])[0];
+			cache[33][cy] = u4.x;
+			cache[33][cy + 1] = u4.y;
+			cache[33][cy + 2] = u4.z;
+			cache[33][cy + 3] = u4.w;
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[(tx * cols + ty - 1)];
+		}
+		if (cy == 125) {/*right column*/
+			cache[cx][129] = input[(tx * cols + ty + 4)];
+		}
+		__syncthreads();
+		int vals[4] = { 0 };
+		for (int i = 0; i < 4; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			if (_ty < cols - 1) {
+				uchar3 top = reinterpret_cast<uchar3*>(&cache[cx - 1][_cy - 1])[0];
+				uchar3 mid = reinterpret_cast<uchar3*>(&cache[cx][_cy - 1])[0];
+				uchar3 bot = reinterpret_cast<uchar3*>(&cache[cx + 1][_cy - 1])[0];
+
+				vals[i] += global_conv_kernel3x3[0][0] * top.x;
+				vals[i] += global_conv_kernel3x3[0][1] * top.y;
+				vals[i] += global_conv_kernel3x3[0][2] * top.z;
+				vals[i] += global_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += global_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += global_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += global_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += global_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += global_conv_kernel3x3[2][2] * bot.z;
+
+			}
+		}
+		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+	}
+}
+
+
+__global__ void k_1D_gf_3x3_vectorized2_shared(unsigned char* input, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][66];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 2 + 1;
+	int cx = threadIdx.y + 1;
+
+	uchar2 u2;
+	u2 = reinterpret_cast<uchar2*>(&input[tx * cols + ty])[0];
+
+	cache[cx][cy] = u2.x;
+	cache[cx][cy + 1] = u2.y;
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		if (cx == 1) { /*top row*/
+			u2 = reinterpret_cast<uchar2*>(&input[(tx - 1) * cols + ty])[0];
+			cache[0][cy] = u2.x;
+			cache[0][cy + 1] = u2.y;
+		}
+		if (cx == 32) { /*bottom row*/
+			u2 = reinterpret_cast<uchar2*>(&input[(tx + 1) * cols + ty])[0];
+			cache[33][cy] = u2.x;
+			cache[33][cy + 1] = u2.y;
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[(tx * cols + ty - 1)];
+		}
+		if (cy == 63) {/*right column*/
+			cache[cx][65] = input[((tx)*cols + ty + 2)];
+		}
+		__syncthreads();
+		int vals[2] = { 0 };
+
+		for (int i = 0; i < 2; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			int new_val = 0;
+
+			if (_ty < cols - 1) {
+				uchar3 top = reinterpret_cast<uchar3*>(&cache[cx - 1][_cy - 1])[0];
+				uchar3 mid = reinterpret_cast<uchar3*>(&cache[cx][_cy - 1])[0];
+				uchar3 bot = reinterpret_cast<uchar3*>(&cache[cx + 1][_cy - 1])[0];
+
+				vals[i] += global_conv_kernel3x3[0][0] * top.x;
+				vals[i] += global_conv_kernel3x3[0][1] * top.y;
+				vals[i] += global_conv_kernel3x3[0][2] * top.z;
+				vals[i] += global_conv_kernel3x3[1][0] * mid.x;
+				vals[i] += global_conv_kernel3x3[1][1] * mid.y;
+				vals[i] += global_conv_kernel3x3[1][2] * mid.z;
+				vals[i] += global_conv_kernel3x3[2][0] * bot.x;
+				vals[i] += global_conv_kernel3x3[2][1] * bot.y;
+				vals[i] += global_conv_kernel3x3[2][2] * bot.z;
+
+				input[tx * cols + _ty] = new_val >> 4;
+			}
+		}
+		reinterpret_cast<uchar2*>(&input[(tx * cols + ty)])[0] = make_uchar2(vals[0] >> 4, vals[1] >> 4);
+	}
 }
 
 float gf_1d_gpu(cv::Mat* output_img, GAUSSIAN ver)
@@ -281,17 +1856,20 @@ float gf_1d_gpu(cv::Mat* output_img, GAUSSIAN ver)
 	unsigned char* gpu_input = nullptr;
 	unsigned char* output = output_img->data;
 
-	unsigned int cols = (*output_img).cols;
-	unsigned int rows = (*output_img).rows;
-	unsigned int size = cols * rows * sizeof(unsigned char);
+	int cols = (*output_img).cols;
+	int rows = (*output_img).rows;
+	int size = cols * rows * sizeof(unsigned char);
 
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
+	unsigned char conv_kernel3x3[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
 
-	const int mask_dim = 3;
-
-	dim3 block(32, 32);
+	dim3 block(16,16);
 	dim3 grid((cols + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-
+	dim3 grid2(((cols / 2) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+	dim3 grid4(((cols / 4) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+	dim3 grid8(((cols / 8) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+	dim3 grid12(((cols / 12) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+	dim3 grid16(((cols / 16) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+	dim3 grid32(((cols / 32) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
 
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -299,8 +1877,7 @@ float gf_1d_gpu(cv::Mat* output_img, GAUSSIAN ver)
 
 	cudaEventRecord(start);
 
-	cudaHostRegister(output, size, 0);
-
+	cudaHostRegister(output, size, cudaHostRegisterPortable);
 	CHECK_CUDA_ERROR(cudaMalloc((unsigned char**)&gpu_input, size));
 	CHECK_CUDA_ERROR(cudaMemcpy(gpu_input, output, size, cudaMemcpyHostToDevice));
 
@@ -308,39 +1885,154 @@ float gf_1d_gpu(cv::Mat* output_img, GAUSSIAN ver)
 	{
 	default:
 		break;
-	case GAUSSIAN_default:
-		k_1D_gf << <grid, block >> > (gpu_input, rows, cols, mask_dim);
+	case GAUSSIAN_3x3_global:
+		k_1D_gf_3x3_global << <grid, block >> > (gpu_input, rows, cols);
 		break;
-	case GAUSSIAN_unroll:
-		k_1D_gf_unroll << <grid, block >> > (gpu_input, rows, cols, mask_dim);
+	case GAUSSIAN_3x3_local:
+		k_1D_gf_3x3_local << <grid, block >> > (gpu_input, rows, cols);
 		break;
-	case GAUSSIAN_prefetch:
-		k_1D_gf_prefetch << <grid, block >> > (gpu_input, rows, cols, mask_dim);
+	case GAUSSIAN_3x3_constant:
+		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(const_conv_kernel3x3, conv_kernel3x3, sizeof(unsigned char) * 3 * 3));
+		k_1D_gf_3x3_constant << <grid, block >> > (gpu_input, rows, cols);
 		break;
-	case GAUSSIAN_constant:
-		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(dev_const_conv_kernel, conv_kernel, sizeof(uchar) * 3 * 3));
-		k_1D_gf_constant << <grid, block >> > (gpu_input, rows, cols, mask_dim);
+	case GAUSSIAN_3x3_shared:
+		k_1D_gf_3x3_shared << <grid, block >> > (gpu_input, rows, cols);
 		break;
-	case GAUSSIAN_shared:
-		k_1D_gf_shared << <grid, block >> > (gpu_input, rows, cols, mask_dim);
+	case GAUSSIAN_3x3_load_balance32_global:
+		k_1D_gf_3x3_load_balance32_global << <grid32, block >> > (gpu_input, rows, cols);
 		break;
-	case GAUSSIAN_combined:
-		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(dev_const_conv_kernel, conv_kernel, sizeof(uchar) * 3 * 3));
-		k_1D_gf_combined << <grid, block >> > (gpu_input, rows, cols, mask_dim);
+	case GAUSSIAN_3x3_load_balance16_global:
+		k_1D_gf_3x3_load_balance16_global << <grid16, block >> > (gpu_input, rows, cols);
 		break;
-	case GAUSSIAN_load_balance:
-		{
-			int load = 3;
-			dim3 grid_load_balance(((cols / load) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-			k_1D_gf_load_balance << <grid_load_balance, block >> > (gpu_input, rows, cols, load);
-		}
+	case GAUSSIAN_3x3_load_balance12_global:
+		k_1D_gf_3x3_load_balance12_global << <grid12, block >> > (gpu_input, rows, cols);
 		break;
-	case GAUSSIAN_vectorized:
-		{
-			int load = 3;
-			dim3 grid_load_balance(((cols / load) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-			k_1D_gf_vectorized << <grid_load_balance, block >> > (gpu_input, rows, cols, load);
-		}
+	case GAUSSIAN_3x3_load_balance8_global:
+		k_1D_gf_3x3_load_balance8_global << <grid8, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance4_global:
+		k_1D_gf_3x3_load_balance4_global << <grid4, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance2_global:
+		k_1D_gf_3x3_load_balance2_global << <grid2, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized32_global:
+		k_1D_gf_3x3_vectorized32_global << <grid32, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized16_global:
+		k_1D_gf_3x3_vectorized16_global << <grid16, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized12_global:
+		k_1D_gf_3x3_vectorized12_global << <grid12, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized8_global:
+		k_1D_gf_3x3_vectorized8_global << <grid8, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized4_global:
+		k_1D_gf_3x3_vectorized4_global << <grid4, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized2_global:
+		k_1D_gf_3x3_vectorized2_global << <grid2, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance16_local:
+		k_1D_gf_3x3_load_balance16_local << <grid16, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance12_local:
+		k_1D_gf_3x3_load_balance12_local << <grid12, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance8_local:
+		k_1D_gf_3x3_load_balance8_local << <grid8, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance4_local:
+		k_1D_gf_3x3_load_balance4_local << <grid4, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance2_local:
+		k_1D_gf_3x3_load_balance2_local << <grid2, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized16_local:
+		k_1D_gf_3x3_vectorized16_local << <grid16, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized12_local:
+		k_1D_gf_3x3_vectorized12_local << <grid12, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized8_local:
+		k_1D_gf_3x3_vectorized8_local << <grid8, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized4_local:
+		k_1D_gf_3x3_vectorized4_local << <grid4, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized2_local:
+		k_1D_gf_3x3_vectorized2_local << <grid2, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance16_constant:
+		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(const_conv_kernel3x3, conv_kernel3x3, sizeof(unsigned char) * 3 * 3));
+		k_1D_gf_3x3_load_balance16_constant << <grid16, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance12_constant:
+		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(const_conv_kernel3x3, conv_kernel3x3, sizeof(unsigned char) * 3 * 3));
+		k_1D_gf_3x3_load_balance12_constant << <grid12, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance8_constant:
+		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(const_conv_kernel3x3, conv_kernel3x3, sizeof(unsigned char) * 3 * 3));
+		k_1D_gf_3x3_load_balance8_constant << <grid8, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance4_constant:
+		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(const_conv_kernel3x3, conv_kernel3x3, sizeof(unsigned char) * 3 * 3));
+		k_1D_gf_3x3_load_balance4_constant << <grid4, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance2_constant:
+		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(const_conv_kernel3x3, conv_kernel3x3, sizeof(unsigned char) * 3 * 3));
+		k_1D_gf_3x3_load_balance2_constant << <grid2, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized16_constant:
+		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(const_conv_kernel3x3, conv_kernel3x3, sizeof(unsigned char) * 3 * 3));
+		k_1D_gf_3x3_vectorized16_constant << <grid16, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized12_constant:
+		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(const_conv_kernel3x3, conv_kernel3x3, sizeof(unsigned char) * 3 * 3));
+		k_1D_gf_3x3_vectorized12_constant << <grid12, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized8_constant:
+		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(const_conv_kernel3x3, conv_kernel3x3, sizeof(unsigned char) * 3 * 3));
+		k_1D_gf_3x3_vectorized8_constant << <grid8, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized4_constant:
+		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(const_conv_kernel3x3, conv_kernel3x3, sizeof(unsigned char) * 3 * 3));
+		k_1D_gf_3x3_vectorized4_constant << <grid4, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized2_constant:
+		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(const_conv_kernel3x3, conv_kernel3x3, sizeof(unsigned char) * 3 * 3));
+		k_1D_gf_3x3_vectorized2_constant << <grid2, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance16_shared:
+		k_1D_gf_3x3_load_balance16_shared << <grid16, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance12_shared:
+		k_1D_gf_3x3_load_balance12_shared << <grid12, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance8_shared:
+		k_1D_gf_3x3_load_balance8_shared << <grid8, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance4_shared:
+		k_1D_gf_3x3_load_balance4_shared << <grid4, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_load_balance2_shared:
+		k_1D_gf_3x3_load_balance2_shared << <grid2, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized16_shared:
+		k_1D_gf_3x3_vectorized16_shared << <grid16, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized12_shared:
+		k_1D_gf_3x3_vectorized12_shared << <grid12, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized8_shared:
+		k_1D_gf_3x3_vectorized8_shared << <grid8, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized4_shared:
+		k_1D_gf_3x3_vectorized4_shared << <grid4, block >> > (gpu_input, rows, cols);
+		break;
+	case GAUSSIAN_3x3_vectorized2_shared:
+		k_1D_gf_3x3_vectorized2_shared << <grid2, block >> > (gpu_input, rows, cols);
 		break;
 	}
 	CHECK_CUDA_ERROR(cudaMemcpy(output, gpu_input, size, cudaMemcpyDeviceToHost));
@@ -352,456 +2044,6 @@ float gf_1d_gpu(cv::Mat* output_img, GAUSSIAN ver)
 	cudaEventElapsedTime(&elapsed, start, stop);
 
 	cudaHostUnregister(output);
-	cudaFree(gpu_input);
-	cudaDeviceReset();
-	return elapsed;
-}
-
-__global__ void k_3D_gf(unsigned char* input, int rows, int cols, int mask_dim)
-{
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-
-	int ty = blockIdx.x * blockDim.x + threadIdx.x;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
-
-	int new_val = 0;
-	int offset_x = 1, offset_y = 3;
-
-	if ((tx > 2 && tx < rows - 2) && (ty > 2 && ty < cols - 2)) {
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				new_val += conv_kernel[i][j] * input[(tx + i - offset_x) * cols + (ty + (j * 3) - offset_y)];
-			}
-		}
-	}
-	else {
-		return;
-	}
-
-	input[threadId] = new_val >> 4;
-}
-
-__global__ void k_3D_gf_load_balance(unsigned char* input, int rows, int cols, int load)
-{
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-
-	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * load;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
-
-	int offset_x = 1, offset_y = 3;
-
-	for (int l = 0; l < load; l++) {
-		int new_val = 0;
-		int _tx = tx;
-		int _ty = ty + l;
-
-		if ((tx > 2 && tx < rows - 2) && (ty > 2 && ty < cols - 2)) {
-			for (int i = 0; i < 3; i++) {
-				for (int j = 0; j < 3; j++) {
-					new_val += conv_kernel[i][j] * input[(_tx + i - offset_x) * cols + (_ty + (j * 3) - offset_y)];
-				}
-			}
-		}
-		else {
-			return;
-		}
-		input[_tx * cols + _ty] = new_val >> 4;
-	}
-}
-
-__global__ void k_1D_gf_vectorized(unsigned char* input, int rows, int cols, int load)
-{
-	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * load;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int thread_id = (tx * cols + ty);
-
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-
-	int offset = 1;
-	int vals[4] = { 0 };
-
-	for (int i = 0; i < load; i++) {
-		int new_val = 0;
-		int _tx = tx;
-		int _ty = ty + i;
-
-		for (int r = 0; r < 3; r++)
-		{
-			for (int c = 0; c < 3; c++)
-			{
-				if ((_tx > 0 && _tx < rows - 1) && (_ty > 0 && _ty < cols - 1))
-				{
-					vals[i] += conv_kernel[r][c] * input[(_tx - offset + r) * cols + (_ty - offset + c)];
-				}
-				else
-				{
-					return;
-				}
-			}
-		}
-	}
-	switch (load)
-	{
-	case 2:
-		reinterpret_cast<uchar2*>(&input[(tx * cols + ty)])[0] = make_uchar2(vals[0] / 16, vals[1] / 16);
-		break;
-	case 3:
-		reinterpret_cast<uchar3*>(&input[(tx * cols + ty)])[0] = make_uchar3(vals[0] / 16, vals[1] / 16, vals[2] / 16);
-		break;
-	case 4:
-		reinterpret_cast<uchar4*>(&input[(tx * cols + ty)])[0] = make_uchar4(vals[0] / 16, vals[1] / 16, vals[2] / 16, vals[3] / 16);
-		break;
-	default:
-		break;
-	}
-}
-
-
-__global__ void k_3D_gf_vectorized(unsigned char* input, int rows, int cols, int load)
-{
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-
-	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * load;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
-
-	int offset_x = 1, offset_y = 3;
-
-	int vals[4] = {0};
-
-	for (int l = 0; l < load; l++) {
-		int new_val = 0;
-		int _tx = tx;
-		int _ty = ty + l;
-
-		if ((tx > 2 && tx < rows - 2) && (ty > 2 && ty < cols - 2)) {
-			for (int i = 0; i < 3; i++) {
-				for (int j = 0; j < 3; j++) {
-					vals[i] += conv_kernel[i][j] * input[(_tx + i - offset_x) * cols + (_ty + (j * 3) - offset_y)];
-				}
-			}
-		}
-		else {
-			return;
-		}
-		input[_tx * cols + _ty] = new_val >> 4;
-	}
-}
-
-
-__global__ void k_3D_gf_unroll(unsigned char* input, int rows, int cols, int mask_dim)
-{
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-
-	int ty = blockIdx.x * blockDim.x + threadIdx.x;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
-
-	int new_val = 0;
-
-	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		new_val += conv_kernel[0][0] * input[(tx - 1) * cols + ty - 3];
-		new_val += conv_kernel[0][1] * input[(tx - 1) * cols + ty];
-		new_val += conv_kernel[0][2] * input[(tx - 1) * cols + ty + 3];
-		new_val += conv_kernel[1][0] * input[tx * cols + ty - 3];
-		new_val += conv_kernel[1][1] * input[tx * cols + ty];
-		new_val += conv_kernel[1][2] * input[tx * cols + ty + 3];
-		new_val += conv_kernel[2][0] * input[(tx + 1) * cols + ty - 3];
-		new_val += conv_kernel[2][1] * input[(tx + 1) * cols + ty];
-		new_val += conv_kernel[2][2] * input[(tx + 1) * cols + ty + 3];
-	}
-	else {
-		return;
-	}
-
-	input[threadId] = static_cast<uchar>(new_val / 16);
-}
-
-__global__ void k_3D_gf_prefetch(unsigned char* input, int rows, int cols, int mask_dim)
-{
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-
-	int ty = blockIdx.x * blockDim.x + threadIdx.x;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
-
-	int new_val = 0;
-	int offset_x = 1, offset_y = 3;
-
-	int x_index = tx - offset_x;
-	int y_index = ty - offset_y;
-	unsigned char pixel = input[x_index * cols + y_index];
-
-	if ((tx > 2 && tx < rows - 2) && (ty > 2 && ty < cols - 2)) {
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				new_val += conv_kernel[i][j] * pixel;
-				y_index += 3;
-				pixel = input[x_index * cols + y_index];
-			}
-			y_index = ty - offset_y;
-			pixel = input[(++x_index) * cols + y_index];
-		}
-	}
-	else {
-		return;
-	}
-	input[threadId] = static_cast<uchar>(new_val / 16);
-}
-
-
-__global__ void k_3D_gf_constant(unsigned char* input, int rows, int cols, int mask_dim)
-{
-	int ty = blockIdx.x * blockDim.x + threadIdx.x;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
-
-	int new_val = 0;
-	int offset_x = 1, offset_y = 3;
-
-	if ((tx > 2 && tx < rows - 2) && (ty > 2 && ty < cols - 2)) {
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				new_val += dev_const_conv_kernel[i][j] * input[(tx + i - offset_x) * cols + (ty + (j * 3) - offset_y)];
-			}
-		}
-	}
-	else {
-		return;
-	}
-
-	//if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-	//	new_val += dev_const_conv_kernel[0][0] * input[(tx - 1) * cols + ty - 3];
-	//	new_val += dev_const_conv_kernel[0][1] * input[(tx - 1) * cols + ty];
-	//	new_val += dev_const_conv_kernel[0][2] * input[(tx - 1) * cols + ty + 3];
-	//	new_val += dev_const_conv_kernel[1][0] * input[tx * cols + ty - 3];
-	//	new_val += dev_const_conv_kernel[1][1] * input[tx * cols + ty];
-	//	new_val += dev_const_conv_kernel[1][2] * input[tx * cols + ty + 3];
-	//	new_val += dev_const_conv_kernel[2][0] * input[(tx + 1) * cols + ty - 3];
-	//	new_val += dev_const_conv_kernel[2][1] * input[(tx + 1) * cols + ty];
-	//	new_val += dev_const_conv_kernel[2][2] * input[(tx + 1) * cols + ty + 3];
-	//}
-	//else {
-	//	return;
-	//}
-	input[threadId] = static_cast<uchar>(new_val / 16);
-}
-
-__global__ void k_3D_gf_shared(unsigned char* input, int rows, int cols, int mask_dim)
-{
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-
-	__shared__ unsigned char cache[34][38];
-
-	int ty = blockIdx.x * blockDim.x + threadIdx.x;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
-
-	unsigned int bx = threadIdx.y;
-	unsigned int by = threadIdx.x;
-
-	unsigned int cy = by + 3;
-	unsigned int cx = bx + 1;
-
-	cache[cx][cy] = input[threadId];
-
-	if (cx == 1) {
-		cache[0][cy] = input[((tx - 1) * cols + ty)];
-	}
-	if (cx == 32) {
-		cache[33][cy] = input[((tx + 1) * cols + ty)];
-	}
-	if (cy == 3) {
-		cache[cx][0] = input[(tx * cols + ty - 3)];
-		cache[cx][1] = input[(tx * cols + ty - 2)];
-		cache[cx][2] = input[(tx * cols + ty - 1)];
-	}
-	if (cy == 34) {
-		cache[cx][35] = input[(tx * cols + ty + 1)];
-		cache[cx][36] = input[(tx * cols + ty + 2)];
-		cache[cx][37] = input[(tx * cols + ty + 3)];
-	}
-
-	__syncthreads();
-
-	int new_val = 0;
-	int offset_x = 1, offset_y = 3;
-
-	if ((tx > 2 && tx < rows - 2) && (ty > 2 && ty < cols - 2)) {
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				new_val += conv_kernel[i][j] * cache[cx + i - offset_x][cy + (j * 3) - offset_y];
-			}
-		}
-	}
-	else {
-		return;
-	}
-
-	//if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-	//	new_val += conv_kernel[0][0] * cache[cx - 1][cy - 3];
-	//	new_val += conv_kernel[0][1] * cache[cx - 1][cy];
-	//	new_val += conv_kernel[0][2] * cache[cx - 1][cy + 3];
-
-	//	new_val += conv_kernel[1][0] * cache[cx][cy - 3];
-	//	new_val += conv_kernel[1][1] * cache[cx][cy];
-	//	new_val += conv_kernel[1][2] * cache[cx][cy + 3];
-
-	//	new_val += conv_kernel[2][0] * cache[cx + 1][cy - 3];
-	//	new_val += conv_kernel[2][1] * cache[cx + 1][cy];
-	//	new_val += conv_kernel[2][2] * cache[cx + 1][cy + 3];
-	//}
-	//else {
-	//	return;
-	//}
-
-	input[threadId] = static_cast<uchar>(new_val / 16);
-}
-
-__global__ void k_3D_gf_combined(unsigned char* input, int rows, int cols, int mask_dim)
-{
-	__shared__ unsigned char cache[34][38];
-
-	int ty = blockIdx.x * blockDim.x + threadIdx.x;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	int threadId = (tx * cols + ty);
-
-	unsigned int bx = threadIdx.y;
-	unsigned int by = threadIdx.x;
-
-	unsigned int cy = by + 3;
-	unsigned int cx = bx + 1;
-
-	cache[cx][cy] = input[threadId];
-
-	if (cx == 1) {
-		cache[0][cy] = input[((tx - 1) * cols + ty)];
-	}
-	if (cx == 32) {
-		cache[33][cy] = input[((tx + 1) * cols + ty)];
-	}
-	if (cy == 3) {
-		cache[cx][0] = input[(tx * cols + ty - 3)];
-		cache[cx][1] = input[(tx * cols + ty - 2)];
-		cache[cx][2] = input[(tx * cols + ty - 1)];
-	}
-	if (cy == 34) {
-		cache[cx][35] = input[(tx * cols + ty + 1)];
-		cache[cx][36] = input[(tx * cols + ty + 2)];
-		cache[cx][37] = input[(tx * cols + ty + 3)];
-	}
-
-	__syncthreads();
-	int new_val = 0;
-	int offset_x = 1, offset_y = 3;
-
-	if ((tx > 2 && tx < rows - 2) && (ty > 2 && ty < cols - 2)) {
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				new_val += dev_const_conv_kernel[i][j] * cache[cx + i - offset_x][cy + (j * 3) - offset_y];
-			}
-		}
-	}
-	else {
-		return;
-	}
-
-	//if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-	//	new_val += dev_const_conv_kernel[0][0] * cache[cx - 1][cy - 3];
-	//	new_val += dev_const_conv_kernel[0][1] * cache[cx - 1][cy];
-	//	new_val += dev_const_conv_kernel[0][2] * cache[cx - 1][cy + 3];
-
-	//	new_val += dev_const_conv_kernel[1][0] * cache[cx][cy - 3];
-	//	new_val += dev_const_conv_kernel[1][1] * cache[cx][cy];
-	//	new_val += dev_const_conv_kernel[1][2] * cache[cx][cy + 3];
-
-	//	new_val += dev_const_conv_kernel[2][0] * cache[cx + 1][cy - 3];
-	//	new_val += dev_const_conv_kernel[2][1] * cache[cx + 1][cy];
-	//	new_val += dev_const_conv_kernel[2][2] * cache[cx + 1][cy + 3];
-	//}
-	//else {
-	//	return;
-	//}
-
-	input[threadId] = static_cast<uchar>(new_val / 16);
-}
-
-float gf_3d_gpu(cv::Mat* output_img, GAUSSIAN ver)
-{
-	unsigned char* gpu_input = NULL;
-	unsigned char* output = output_img->data;
-
-	unsigned int cols = (*output_img).cols * 3;
-	unsigned int rows = (*output_img).rows;
-	unsigned int size = rows * cols * sizeof(unsigned char);
-
-	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-
-	const uint mask_dim = 3;
-
-	dim3 block(32, 32);
-	dim3 grid((cols + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-
-	cudaEvent_t start, stop;
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-
-	cudaEventRecord(start);
-
-	cudaHostRegister(output, size, 0);
-
-	CHECK_CUDA_ERROR(cudaMalloc((unsigned char**)&gpu_input, size));
-	CHECK_CUDA_ERROR(cudaMemcpy(gpu_input, output, size, cudaMemcpyHostToDevice));
-
-	switch (ver)
-	{
-	default:
-		break;
-	case GAUSSIAN_default:
-		k_3D_gf << <grid, block >> > (gpu_input, rows, cols, mask_dim);
-		break;
-	case GAUSSIAN_prefetch:
-		k_3D_gf_prefetch << <grid, block >> > (gpu_input, rows, cols, mask_dim);
-		break;
-	case GAUSSIAN_unroll:
-		k_3D_gf_unroll << <grid, block >> > (gpu_input, rows, cols, mask_dim);
-		break;
-	case GAUSSIAN_constant:
-		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(dev_const_conv_kernel, conv_kernel, sizeof(uchar) * 3 * 3));
-		k_3D_gf_constant << <grid, block >> > (gpu_input, rows, cols, mask_dim);
-		break;
-	case GAUSSIAN_shared:
-		k_3D_gf_shared << <grid, block >> > (gpu_input, rows, cols, mask_dim);
-		break;
-	case GAUSSIAN_combined:
-		CHECK_CUDA_ERROR(cudaMemcpyToSymbol(dev_const_conv_kernel, conv_kernel, sizeof(uchar) * 3 * 3));
-		k_3D_gf_combined << <grid, block >> > (gpu_input, rows, cols, mask_dim);
-		break;
-	case GAUSSIAN_load_balance:
-		{
-			int load = 4;
-			dim3 grid_load_balance(((cols / load) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-			k_3D_gf_load_balance << <grid_load_balance, block >> > (gpu_input, rows, cols, load);
-		}
-		break;
-	case GAUSSIAN_vectorized:
-		{
-			int load = 4;
-			dim3 grid_load_balance(((cols / load) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-			k_3D_gf_vectorized << <grid_load_balance, block >> > (gpu_input, rows, cols, load);
-		}
-	break;
-	}
-
-	CHECK_CUDA_ERROR(cudaMemcpy(output, gpu_input, size, cudaMemcpyDeviceToHost));
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-
-	float elapsed = 0.0f;
-	cudaEventElapsedTime(&elapsed, start, stop);
-
 	cudaFree(gpu_input);
 	cudaDeviceReset();
 	return elapsed;

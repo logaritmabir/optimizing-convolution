@@ -381,7 +381,7 @@ float he_1d_gpu(cv::Mat* output_img, HISTOGRAM ver) {
 			int load = 4;
 			dim3 grid_laod_balance(((pixels / load) + block.x - 1) / block.x);
 			k_1D_extract_histogram_vectorized_shared << <grid_laod_balance, block >> > (gpu_input, pixels, load);
-			k_1D_normalize_cdf_equalization_shared << <4, 64 >> > (pixels);
+			k_1D_normalize_cdf_equalization_shared << <1, 256 >> > (pixels);
 			k_1D_equalize_vectorized_shared << <grid_laod_balance, block >> > (gpu_input, pixels, load);
 		}
 		break;
@@ -1023,7 +1023,7 @@ float he_3d_gpu(cv::Mat* output_img, HISTOGRAM ver) {
 		break;
 	case HISTOGRAM_load_balance:
 		{
-			int load = 4;
+			int load = 3;
 			dim3 grid_laod_balance(((total_channel_size / load) + block.x - 1) / block.x);
 			k_3D_extract_histogram_load_balance << <grid_laod_balance, block >> > (gpu_input, total_channel_size, load);
 			k_3D_normalize_cdf_equalization << <4, 64 >> > (pixels);
@@ -1032,7 +1032,7 @@ float he_3d_gpu(cv::Mat* output_img, HISTOGRAM ver) {
 		break;
 	case HISTOGRAM_vectorized:
 		{
-			int load = 4;
+			int load = 3;
 			dim3 grid_laod_balance(((total_channel_size / load) + block.x - 1) / block.x);
 			k_3D_extract_histogram_vectorized << <grid_laod_balance, block >> > (gpu_input, total_channel_size, load);
 			k_3D_normalize_cdf_equalization << <4, 64 >> > (pixels);

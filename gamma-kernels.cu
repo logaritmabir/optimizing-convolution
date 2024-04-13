@@ -219,7 +219,13 @@ __global__ void k_3D_gc_vectorized_shared(unsigned char* input, int rows, int co
 	}
 	__syncthreads();
 
-	if (load == 4) {
+
+	switch (load)
+	{
+	default:
+		break;
+	case 4:
+	{
 		uchar4 pixel = reinterpret_cast<uchar4*>(input)[thread_id];
 
 		if (thread_id < rows * cols) {
@@ -230,6 +236,33 @@ __global__ void k_3D_gc_vectorized_shared(unsigned char* input, int rows, int co
 		}
 
 		reinterpret_cast<uchar4*>(input)[thread_id] = pixel;
+	}
+	break;
+	case 3:
+	{
+		uchar3 pixel = reinterpret_cast<uchar3*>(input)[thread_id];
+
+		if (thread_id < rows * cols) {
+			pixel.x = s_LUT[pixel.x];
+			pixel.y = s_LUT[pixel.y];
+			pixel.z = s_LUT[pixel.z];
+		}
+
+		reinterpret_cast<uchar3*>(input)[thread_id] = pixel;
+	}
+	break;
+	case 2:
+	{
+		uchar2 pixel = reinterpret_cast<uchar2*>(input)[thread_id];
+
+		if (thread_id < rows * cols) {
+			pixel.x = s_LUT[pixel.x];
+			pixel.y = s_LUT[pixel.y];
+		}
+
+		reinterpret_cast<uchar2*>(input)[thread_id] = pixel;
+	}
+	break;
 	}
 }
 
@@ -280,7 +313,7 @@ float gc_3d_gpu(cv::Mat* output_img, float gamma, GAMMA ver) {
 		}
 		k_3D_gc_constant << <grid, block >> > (gpu_input, rows, cols);
 		break;
-	case GAMMA_recompute: /*recompute*/
+	case GAMMA_recompute:
 		k_3D_gc_recompute << <grid, block >> > (gpu_input, rows, cols, gamma);
 		break;
 	case GAMMA_noLUT:
