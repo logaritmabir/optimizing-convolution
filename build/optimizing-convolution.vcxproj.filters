@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CudaCompile Include="..\src\gamma-kernels.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\gaussian-kernels.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\histogram-kernels.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\multithreaded.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\singlethreaded.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\src\main.cu">
+      <Filter>Source Files</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\ben\Desktop\optimizing-convolution\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\ben\Desktop\optimizing-convolution\include\dependencies.cuh" />
+    <None Include="C:\Users\ben\Desktop\optimizing-convolution\include\gamma.cuh" />
+    <None Include="C:\Users\ben\Desktop\optimizing-convolution\include\gaussian.cuh" />
+    <None Include="C:\Users\ben\Desktop\optimizing-convolution\include\histogram.cuh" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{C6AC6987-1961-34F3-8A0A-0C105DD0593A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

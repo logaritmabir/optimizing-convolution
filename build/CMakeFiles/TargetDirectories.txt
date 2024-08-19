@@ -1,3 +1,3 @@
-C:/Users/ben/Desktop/faster-image-enhance/build/CMakeFiles/cuda-demo.dir
-C:/Users/ben/Desktop/faster-image-enhance/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/ben/Desktop/faster-image-enhance/build/CMakeFiles/ZERO_CHECK.dir
+C:/Users/ben/Desktop/optimizing-convolution/build/CMakeFiles/optimizing-convolution.dir
+C:/Users/ben/Desktop/optimizing-convolution/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/ben/Desktop/optimizing-convolution/build/CMakeFiles/ZERO_CHECK.dir

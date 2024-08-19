@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(cuda-demo)
+project(optimizing-convolution)
 
 enable_language(CUDA)
 
@@ -12,22 +12,27 @@ set(OpenCV_DIR "C:/Users/ben/Desktop/opencv/build")
 find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
 set(CUDA_FILES
-    dependencies.cuh
-    gamma-kernels.cu
-    gamma.cuh
-    gaussian-kernels.cu
-    gaussian.cuh
-    histogram-kernels.cu
-    histogram.cuh
-    multithreaded.cu
-    singlethreaded.cu
+    src/gamma-kernels.cu
+    src/gaussian-kernels.cu
+    src/histogram-kernels.cu
+    src/multithreaded.cu
+    src/singlethreaded.cu
+)
+
+set(CUDA_HEADERS
+    include/dependencies.cuh
+    include/gamma.cuh
+    include/gaussian.cuh
+    include/histogram.cuh
 )
 
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-O3)
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_75)
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--expt-relaxed-constexpr)
 
-add_executable(${PROJECT_NAME} ${CUDA_FILES} main.cu)
+add_executable(${PROJECT_NAME} ${CUDA_FILES} ${CUDA_HEADERS} src/main.cu)
 
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${CUDA_LIBRARIES})

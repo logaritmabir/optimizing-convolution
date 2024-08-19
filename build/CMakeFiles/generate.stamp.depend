@@ -25,15 +25,15 @@ C:/Program Files/CMake/share/cmake-3.28/Modules/Platform/Windows-MSVC.cmake
 C:/Program Files/CMake/share/cmake-3.28/Modules/Platform/Windows-NVIDIA-CUDA.cmake
 C:/Program Files/CMake/share/cmake-3.28/Modules/Platform/Windows.cmake
 C:/Program Files/CMake/share/cmake-3.28/Modules/Platform/WindowsPaths.cmake
-C:/Users/ben/Desktop/faster-image-enhance/CMakeLists.txt
-C:/Users/ben/Desktop/faster-image-enhance/build/CMakeFiles/3.28.1/CMakeCCompiler.cmake
-C:/Users/ben/Desktop/faster-image-enhance/build/CMakeFiles/3.28.1/CMakeCUDACompiler.cmake
-C:/Users/ben/Desktop/faster-image-enhance/build/CMakeFiles/3.28.1/CMakeCXXCompiler.cmake
-C:/Users/ben/Desktop/faster-image-enhance/build/CMakeFiles/3.28.1/CMakeRCCompiler.cmake
-C:/Users/ben/Desktop/faster-image-enhance/build/CMakeFiles/3.28.1/CMakeSystem.cmake
 C:/Users/ben/Desktop/opencv/build/OpenCVConfig-version.cmake
 C:/Users/ben/Desktop/opencv/build/OpenCVConfig.cmake
 C:/Users/ben/Desktop/opencv/build/x64/vc16/lib/OpenCVConfig.cmake
 C:/Users/ben/Desktop/opencv/build/x64/vc16/lib/OpenCVModules-debug.cmake
 C:/Users/ben/Desktop/opencv/build/x64/vc16/lib/OpenCVModules-release.cmake
 C:/Users/ben/Desktop/opencv/build/x64/vc16/lib/OpenCVModules.cmake
+C:/Users/ben/Desktop/optimizing-convolution/CMakeLists.txt
+C:/Users/ben/Desktop/optimizing-convolution/build/CMakeFiles/3.28.1/CMakeCCompiler.cmake
+C:/Users/ben/Desktop/optimizing-convolution/build/CMakeFiles/3.28.1/CMakeCUDACompiler.cmake
+C:/Users/ben/Desktop/optimizing-convolution/build/CMakeFiles/3.28.1/CMakeCXXCompiler.cmake
+C:/Users/ben/Desktop/optimizing-convolution/build/CMakeFiles/3.28.1/CMakeRCCompiler.cmake
+C:/Users/ben/Desktop/optimizing-convolution/build/CMakeFiles/3.28.1/CMakeSystem.cmake

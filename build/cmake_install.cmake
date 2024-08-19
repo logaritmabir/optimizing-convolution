@@ -1,8 +1,8 @@
-# Install script for directory: C:/Users/ben/Desktop/faster-image-enhance
+# Install script for directory: C:/Users/ben/Desktop/optimizing-convolution
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "C:/Program Files (x86)/cuda-demo")
+  set(CMAKE_INSTALL_PREFIX "C:/Program Files (x86)/optimizing-convolution")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -40,5 +40,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "C:/Users/ben/Desktop/faster-image-enhance/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "C:/Users/ben/Desktop/optimizing-convolution/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
