@@ -893,15 +893,15 @@ __global__ void k_1D_gf_3x3_vectorized16_global(unsigned char* input, unsigned c
 		frame[2][1] = bot.y;
 		frame[2][2] = bot.z;
 
-		vals[0] = global_conv_kernel3x3[0][0] * frame[0][0]
-		+ global_conv_kernel3x3[0][1] * frame[0][1]
-		+ global_conv_kernel3x3[0][2] * frame[0][2]
-		+ global_conv_kernel3x3[1][0] * frame[1][0]
-		+ global_conv_kernel3x3[1][1] * frame[1][1]
-		+ global_conv_kernel3x3[1][2] * frame[1][2]
-		+ global_conv_kernel3x3[2][0] * frame[2][0]
-		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2];
+		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
+			+ global_conv_kernel3x3[0][1] * frame[0][1]
+			+ global_conv_kernel3x3[0][2] * frame[0][2]
+			+ global_conv_kernel3x3[1][0] * frame[1][0]
+			+ global_conv_kernel3x3[1][1] * frame[1][1]
+			+ global_conv_kernel3x3[1][2] * frame[1][2]
+			+ global_conv_kernel3x3[2][0] * frame[2][0]
+			+ global_conv_kernel3x3[2][1] * frame[2][1]
+			+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 16; i++) {
 			int _ty = ty + i;
@@ -911,21 +911,21 @@ __global__ void k_1D_gf_3x3_vectorized16_global(unsigned char* input, unsigned c
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = global_conv_kernel3x3[0][0] * frame[0][0]
-				+ global_conv_kernel3x3[0][1] * frame[0][1]
-				+ global_conv_kernel3x3[0][2] * frame[0][2]
-				+ global_conv_kernel3x3[1][0] * frame[1][0]
-				+ global_conv_kernel3x3[1][1] * frame[1][1]
-				+ global_conv_kernel3x3[1][2] * frame[1][2]
-				+ global_conv_kernel3x3[2][0] * frame[2][0]
-				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2];
+				vals[i] = (global_conv_kernel3x3[0][0] * frame[0][0]
+					+ global_conv_kernel3x3[0][1] * frame[0][1]
+					+ global_conv_kernel3x3[0][2] * frame[0][2]
+					+ global_conv_kernel3x3[1][0] * frame[1][0]
+					+ global_conv_kernel3x3[1][1] * frame[1][1]
+					+ global_conv_kernel3x3[1][2] * frame[1][2]
+					+ global_conv_kernel3x3[2][0] * frame[2][0]
+					+ global_conv_kernel3x3[2][1] * frame[2][1]
+					+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12] >> 4, vals[13] >> 4, vals[14] >> 4, vals[15] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8], vals[9], vals[10], vals[11]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12], vals[13], vals[14], vals[15]);
 	}
 }
 
@@ -953,15 +953,15 @@ __global__ void k_1D_gf_3x3_vectorized12_global(unsigned char* input, unsigned c
 		frame[2][1] = bot.y;
 		frame[2][2] = bot.z;
 
-		vals[0] = global_conv_kernel3x3[0][0] * frame[0][0]
-		+ global_conv_kernel3x3[0][1] * frame[0][1]
-		+ global_conv_kernel3x3[0][2] * frame[0][2]
-		+ global_conv_kernel3x3[1][0] * frame[1][0]
-		+ global_conv_kernel3x3[1][1] * frame[1][1]
-		+ global_conv_kernel3x3[1][2] * frame[1][2]
-		+ global_conv_kernel3x3[2][0] * frame[2][0]
-		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2];
+		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
+			+ global_conv_kernel3x3[0][1] * frame[0][1]
+			+ global_conv_kernel3x3[0][2] * frame[0][2]
+			+ global_conv_kernel3x3[1][0] * frame[1][0]
+			+ global_conv_kernel3x3[1][1] * frame[1][1]
+			+ global_conv_kernel3x3[1][2] * frame[1][2]
+			+ global_conv_kernel3x3[2][0] * frame[2][0]
+			+ global_conv_kernel3x3[2][1] * frame[2][1]
+			+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 12; i++) {
 			int _ty = ty + i;
@@ -971,20 +971,20 @@ __global__ void k_1D_gf_3x3_vectorized12_global(unsigned char* input, unsigned c
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = global_conv_kernel3x3[0][0] * frame[0][0]
-				+ global_conv_kernel3x3[0][1] * frame[0][1]
-				+ global_conv_kernel3x3[0][2] * frame[0][2]
-				+ global_conv_kernel3x3[1][0] * frame[1][0]
-				+ global_conv_kernel3x3[1][1] * frame[1][1]
-				+ global_conv_kernel3x3[1][2] * frame[1][2]
-				+ global_conv_kernel3x3[2][0] * frame[2][0]
-				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2];
+				vals[i] = (global_conv_kernel3x3[0][0] * frame[0][0]
+					+ global_conv_kernel3x3[0][1] * frame[0][1]
+					+ global_conv_kernel3x3[0][2] * frame[0][2]
+					+ global_conv_kernel3x3[1][0] * frame[1][0]
+					+ global_conv_kernel3x3[1][1] * frame[1][1]
+					+ global_conv_kernel3x3[1][2] * frame[1][2]
+					+ global_conv_kernel3x3[2][0] * frame[2][0]
+					+ global_conv_kernel3x3[2][1] * frame[2][1]
+					+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8], vals[9], vals[10], vals[11]);
 	}
 }
 __global__ void k_1D_gf_3x3_vectorized8_global(unsigned char* input, unsigned char* output, int rows, int cols)
@@ -1011,15 +1011,15 @@ __global__ void k_1D_gf_3x3_vectorized8_global(unsigned char* input, unsigned ch
 		frame[2][1] = bot.y;
 		frame[2][2] = bot.z;
 
-		vals[0] = global_conv_kernel3x3[0][0] * frame[0][0]
-		+ global_conv_kernel3x3[0][1] * frame[0][1]
-		+ global_conv_kernel3x3[0][2] * frame[0][2]
-		+ global_conv_kernel3x3[1][0] * frame[1][0]
-		+ global_conv_kernel3x3[1][1] * frame[1][1]
-		+ global_conv_kernel3x3[1][2] * frame[1][2]
-		+ global_conv_kernel3x3[2][0] * frame[2][0]
-		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2];
+		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
+			+ global_conv_kernel3x3[0][1] * frame[0][1]
+			+ global_conv_kernel3x3[0][2] * frame[0][2]
+			+ global_conv_kernel3x3[1][0] * frame[1][0]
+			+ global_conv_kernel3x3[1][1] * frame[1][1]
+			+ global_conv_kernel3x3[1][2] * frame[1][2]
+			+ global_conv_kernel3x3[2][0] * frame[2][0]
+			+ global_conv_kernel3x3[2][1] * frame[2][1]
+			+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 8; i++) {
 			int _ty = ty + i;
@@ -1029,19 +1029,19 @@ __global__ void k_1D_gf_3x3_vectorized8_global(unsigned char* input, unsigned ch
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = global_conv_kernel3x3[0][0] * frame[0][0]
-				+ global_conv_kernel3x3[0][1] * frame[0][1]
-				+ global_conv_kernel3x3[0][2] * frame[0][2]
-				+ global_conv_kernel3x3[1][0] * frame[1][0]
-				+ global_conv_kernel3x3[1][1] * frame[1][1]
-				+ global_conv_kernel3x3[1][2] * frame[1][2]
-				+ global_conv_kernel3x3[2][0] * frame[2][0]
-				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2];
+				vals[i] = (global_conv_kernel3x3[0][0] * frame[0][0]
+					+ global_conv_kernel3x3[0][1] * frame[0][1]
+					+ global_conv_kernel3x3[0][2] * frame[0][2]
+					+ global_conv_kernel3x3[1][0] * frame[1][0]
+					+ global_conv_kernel3x3[1][1] * frame[1][1]
+					+ global_conv_kernel3x3[1][2] * frame[1][2]
+					+ global_conv_kernel3x3[2][0] * frame[2][0]
+					+ global_conv_kernel3x3[2][1] * frame[2][1]
+					+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
 	}
 }
 
@@ -1070,15 +1070,15 @@ __global__ void k_1D_gf_3x3_vectorized4_global(unsigned char* input, unsigned ch
 		frame[2][1] = bot.y;
 		frame[2][2] = bot.z;
 
-		vals[0] = global_conv_kernel3x3[0][0] * frame[0][0]
-		+ global_conv_kernel3x3[0][1] * frame[0][1]
-		+ global_conv_kernel3x3[0][2] * frame[0][2]
-		+ global_conv_kernel3x3[1][0] * frame[1][0]
-		+ global_conv_kernel3x3[1][1] * frame[1][1]
-		+ global_conv_kernel3x3[1][2] * frame[1][2]
-		+ global_conv_kernel3x3[2][0] * frame[2][0]
-		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2];
+		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
+			+ global_conv_kernel3x3[0][1] * frame[0][1]
+			+ global_conv_kernel3x3[0][2] * frame[0][2]
+			+ global_conv_kernel3x3[1][0] * frame[1][0]
+			+ global_conv_kernel3x3[1][1] * frame[1][1]
+			+ global_conv_kernel3x3[1][2] * frame[1][2]
+			+ global_conv_kernel3x3[2][0] * frame[2][0]
+			+ global_conv_kernel3x3[2][1] * frame[2][1]
+			+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4; 
 
 		for (int i = 1; i < 4; i++) {
 			int _ty = ty + i;
@@ -1088,18 +1088,18 @@ __global__ void k_1D_gf_3x3_vectorized4_global(unsigned char* input, unsigned ch
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = global_conv_kernel3x3[0][0] * frame[0][0]
-				+ global_conv_kernel3x3[0][1] * frame[0][1]
-				+ global_conv_kernel3x3[0][2] * frame[0][2]
-				+ global_conv_kernel3x3[1][0] * frame[1][0]
-				+ global_conv_kernel3x3[1][1] * frame[1][1]
-				+ global_conv_kernel3x3[1][2] * frame[1][2]
-				+ global_conv_kernel3x3[2][0] * frame[2][0]
-				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2];
+				vals[i] = (global_conv_kernel3x3[0][0] * frame[0][0]
+					+ global_conv_kernel3x3[0][1] * frame[0][1]
+					+ global_conv_kernel3x3[0][2] * frame[0][2]
+					+ global_conv_kernel3x3[1][0] * frame[1][0]
+					+ global_conv_kernel3x3[1][1] * frame[1][1]
+					+ global_conv_kernel3x3[1][2] * frame[1][2]
+					+ global_conv_kernel3x3[2][0] * frame[2][0]
+					+ global_conv_kernel3x3[2][1] * frame[2][1]
+					+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
 	}
 }
 
@@ -1129,15 +1129,15 @@ __global__ void k_1D_gf_3x3_vectorized2_global(unsigned char* input, unsigned ch
 		frame[2][1] = bot.y;
 		frame[2][2] = bot.z;
 
-		vals[0] = global_conv_kernel3x3[0][0] * frame[0][0]
-		+ global_conv_kernel3x3[0][1] * frame[0][1]
-		+ global_conv_kernel3x3[0][2] * frame[0][2]
-		+ global_conv_kernel3x3[1][0] * frame[1][0]
-		+ global_conv_kernel3x3[1][1] * frame[1][1]
-		+ global_conv_kernel3x3[1][2] * frame[1][2]
-		+ global_conv_kernel3x3[2][0] * frame[2][0]
-		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2];
+		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
+			+ global_conv_kernel3x3[0][1] * frame[0][1]
+			+ global_conv_kernel3x3[0][2] * frame[0][2]
+			+ global_conv_kernel3x3[1][0] * frame[1][0]
+			+ global_conv_kernel3x3[1][1] * frame[1][1]
+			+ global_conv_kernel3x3[1][2] * frame[1][2]
+			+ global_conv_kernel3x3[2][0] * frame[2][0]
+			+ global_conv_kernel3x3[2][1] * frame[2][1]
+			+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 2; i++) {
 			int _ty = ty + i;
@@ -1147,18 +1147,18 @@ __global__ void k_1D_gf_3x3_vectorized2_global(unsigned char* input, unsigned ch
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = global_conv_kernel3x3[0][0] * frame[0][0]
-				+ global_conv_kernel3x3[0][1] * frame[0][1]
-				+ global_conv_kernel3x3[0][2] * frame[0][2]
-				+ global_conv_kernel3x3[1][0] * frame[1][0]
-				+ global_conv_kernel3x3[1][1] * frame[1][1]
-				+ global_conv_kernel3x3[1][2] * frame[1][2]
-				+ global_conv_kernel3x3[2][0] * frame[2][0]
-				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2];
+				vals[i] = (global_conv_kernel3x3[0][0] * frame[0][0]
+					+ global_conv_kernel3x3[0][1] * frame[0][1]
+					+ global_conv_kernel3x3[0][2] * frame[0][2]
+					+ global_conv_kernel3x3[1][0] * frame[1][0]
+					+ global_conv_kernel3x3[1][1] * frame[1][1]
+					+ global_conv_kernel3x3[1][2] * frame[1][2]
+					+ global_conv_kernel3x3[2][0] * frame[2][0]
+					+ global_conv_kernel3x3[2][1] * frame[2][1]
+					+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar2*>(&output[(tx * cols + ty)])[0] = make_uchar2(vals[0] >> 4, vals[1] >> 4);
+		reinterpret_cast<uchar2*>(&output[(tx * cols + ty)])[0] = make_uchar2(vals[0], vals[1]);
 	}
 }
 __global__ void k_1D_gf_3x3_vectorized16_local(unsigned char* input, unsigned char* output, int rows, int cols)
@@ -1186,15 +1186,15 @@ __global__ void k_1D_gf_3x3_vectorized16_local(unsigned char* input, unsigned ch
 		frame[2][1] = bot.y;
 		frame[2][2] = bot.z;
 
-		vals[0] = conv_kernel[0][0] * frame[0][0]
-		+ conv_kernel[0][1] * frame[0][1]
-		+ conv_kernel[0][2] * frame[0][2]
-		+ conv_kernel[1][0] * frame[1][0]
-		+ conv_kernel[1][1] * frame[1][1]
-		+ conv_kernel[1][2] * frame[1][2]
-		+ conv_kernel[2][0] * frame[2][0]
-		+ conv_kernel[2][1] * frame[2][1]
-		+ conv_kernel[2][2] * frame[2][2];
+		vals[0] = (conv_kernel[0][0] * frame[0][0]
+			+ conv_kernel[0][1] * frame[0][1]
+			+ conv_kernel[0][2] * frame[0][2]
+			+ conv_kernel[1][0] * frame[1][0]
+			+ conv_kernel[1][1] * frame[1][1]
+			+ conv_kernel[1][2] * frame[1][2]
+			+ conv_kernel[2][0] * frame[2][0]
+			+ conv_kernel[2][1] * frame[2][1]
+			+ conv_kernel[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 16; i++) {
 			int _ty = ty + i;
@@ -1204,21 +1204,21 @@ __global__ void k_1D_gf_3x3_vectorized16_local(unsigned char* input, unsigned ch
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = conv_kernel[0][0] * frame[0][0]
-				+ conv_kernel[0][1] * frame[0][1]
-				+ conv_kernel[0][2] * frame[0][2]
-				+ conv_kernel[1][0] * frame[1][0]
-				+ conv_kernel[1][1] * frame[1][1]
-				+ conv_kernel[1][2] * frame[1][2]
-				+ conv_kernel[2][0] * frame[2][0]
-				+ conv_kernel[2][1] * frame[2][1]
-				+ conv_kernel[2][2] * frame[2][2];
+				vals[i] = (conv_kernel[0][0] * frame[0][0]
+					+ conv_kernel[0][1] * frame[0][1]
+					+ conv_kernel[0][2] * frame[0][2]
+					+ conv_kernel[1][0] * frame[1][0]
+					+ conv_kernel[1][1] * frame[1][1]
+					+ conv_kernel[1][2] * frame[1][2]
+					+ conv_kernel[2][0] * frame[2][0]
+					+ conv_kernel[2][1] * frame[2][1]
+					+ conv_kernel[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12] >> 4, vals[13] >> 4, vals[14] >> 4, vals[15] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8], vals[9], vals[10], vals[11]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12], vals[13], vals[14], vals[15]);
 	}
 }
 
@@ -1247,15 +1247,15 @@ __global__ void k_1D_gf_3x3_vectorized12_local(unsigned char* input, unsigned ch
 		frame[2][1] = bot.y;
 		frame[2][2] = bot.z;
 
-		vals[0] = conv_kernel[0][0] * frame[0][0]
-		+ conv_kernel[0][1] * frame[0][1]
-		+ conv_kernel[0][2] * frame[0][2]
-		+ conv_kernel[1][0] * frame[1][0]
-		+ conv_kernel[1][1] * frame[1][1]
-		+ conv_kernel[1][2] * frame[1][2]
-		+ conv_kernel[2][0] * frame[2][0]
-		+ conv_kernel[2][1] * frame[2][1]
-		+ conv_kernel[2][2] * frame[2][2];
+		vals[0] = (conv_kernel[0][0] * frame[0][0]
+			+ conv_kernel[0][1] * frame[0][1]
+			+ conv_kernel[0][2] * frame[0][2]
+			+ conv_kernel[1][0] * frame[1][0]
+			+ conv_kernel[1][1] * frame[1][1]
+			+ conv_kernel[1][2] * frame[1][2]
+			+ conv_kernel[2][0] * frame[2][0]
+			+ conv_kernel[2][1] * frame[2][1]
+			+ conv_kernel[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 12; i++) {
 			int _ty = ty + i;
@@ -1265,20 +1265,20 @@ __global__ void k_1D_gf_3x3_vectorized12_local(unsigned char* input, unsigned ch
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = conv_kernel[0][0] * frame[0][0]
-				+ conv_kernel[0][1] * frame[0][1]
-				+ conv_kernel[0][2] * frame[0][2]
-				+ conv_kernel[1][0] * frame[1][0]
-				+ conv_kernel[1][1] * frame[1][1]
-				+ conv_kernel[1][2] * frame[1][2]
-				+ conv_kernel[2][0] * frame[2][0]
-				+ conv_kernel[2][1] * frame[2][1]
-				+ conv_kernel[2][2] * frame[2][2];
+				vals[i] = (conv_kernel[0][0] * frame[0][0]
+					+ conv_kernel[0][1] * frame[0][1]
+					+ conv_kernel[0][2] * frame[0][2]
+					+ conv_kernel[1][0] * frame[1][0]
+					+ conv_kernel[1][1] * frame[1][1]
+					+ conv_kernel[1][2] * frame[1][2]
+					+ conv_kernel[2][0] * frame[2][0]
+					+ conv_kernel[2][1] * frame[2][1]
+					+ conv_kernel[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8], vals[9], vals[10], vals[11]);
 	}
 }
 __global__ void k_1D_gf_3x3_vectorized8_local(unsigned char* input, unsigned char* output, int rows, int cols)
@@ -1306,15 +1306,15 @@ __global__ void k_1D_gf_3x3_vectorized8_local(unsigned char* input, unsigned cha
 		frame[2][1] = bot.y;
 		frame[2][2] = bot.z;
 
-		vals[0] = conv_kernel[0][0] * frame[0][0]
-		+ conv_kernel[0][1] * frame[0][1]
-		+ conv_kernel[0][2] * frame[0][2]
-		+ conv_kernel[1][0] * frame[1][0]
-		+ conv_kernel[1][1] * frame[1][1]
-		+ conv_kernel[1][2] * frame[1][2]
-		+ conv_kernel[2][0] * frame[2][0]
-		+ conv_kernel[2][1] * frame[2][1]
-		+ conv_kernel[2][2] * frame[2][2];
+		vals[0] = (conv_kernel[0][0] * frame[0][0]
+			+ conv_kernel[0][1] * frame[0][1]
+			+ conv_kernel[0][2] * frame[0][2]
+			+ conv_kernel[1][0] * frame[1][0]
+			+ conv_kernel[1][1] * frame[1][1]
+			+ conv_kernel[1][2] * frame[1][2]
+			+ conv_kernel[2][0] * frame[2][0]
+			+ conv_kernel[2][1] * frame[2][1]
+			+ conv_kernel[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 8; i++) {
 			int _ty = ty + i;
@@ -1324,19 +1324,19 @@ __global__ void k_1D_gf_3x3_vectorized8_local(unsigned char* input, unsigned cha
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = conv_kernel[0][0] * frame[0][0]
-				+ conv_kernel[0][1] * frame[0][1]
-				+ conv_kernel[0][2] * frame[0][2]
-				+ conv_kernel[1][0] * frame[1][0]
-				+ conv_kernel[1][1] * frame[1][1]
-				+ conv_kernel[1][2] * frame[1][2]
-				+ conv_kernel[2][0] * frame[2][0]
-				+ conv_kernel[2][1] * frame[2][1]
-				+ conv_kernel[2][2] * frame[2][2];
+				vals[i] = (conv_kernel[0][0] * frame[0][0]
+					+ conv_kernel[0][1] * frame[0][1]
+					+ conv_kernel[0][2] * frame[0][2]
+					+ conv_kernel[1][0] * frame[1][0]
+					+ conv_kernel[1][1] * frame[1][1]
+					+ conv_kernel[1][2] * frame[1][2]
+					+ conv_kernel[2][0] * frame[2][0]
+					+ conv_kernel[2][1] * frame[2][1]
+					+ conv_kernel[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
 	}
 }
 
@@ -1366,15 +1366,15 @@ __global__ void k_1D_gf_3x3_vectorized4_local(unsigned char* input, unsigned cha
 		frame[2][1] = bot.y;
 		frame[2][2] = bot.z;
 
-		vals[0] = conv_kernel[0][0] * frame[0][0]
-		+ conv_kernel[0][1] * frame[0][1]
-		+ conv_kernel[0][2] * frame[0][2]
-		+ conv_kernel[1][0] * frame[1][0]
-		+ conv_kernel[1][1] * frame[1][1]
-		+ conv_kernel[1][2] * frame[1][2]
-		+ conv_kernel[2][0] * frame[2][0]
-		+ conv_kernel[2][1] * frame[2][1]
-		+ conv_kernel[2][2] * frame[2][2];
+		vals[0] = (conv_kernel[0][0] * frame[0][0]
+			+ conv_kernel[0][1] * frame[0][1]
+			+ conv_kernel[0][2] * frame[0][2]
+			+ conv_kernel[1][0] * frame[1][0]
+			+ conv_kernel[1][1] * frame[1][1]
+			+ conv_kernel[1][2] * frame[1][2]
+			+ conv_kernel[2][0] * frame[2][0]
+			+ conv_kernel[2][1] * frame[2][1]
+			+ conv_kernel[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 4; i++) {
 			int _ty = ty + i;
@@ -1384,18 +1384,18 @@ __global__ void k_1D_gf_3x3_vectorized4_local(unsigned char* input, unsigned cha
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = conv_kernel[0][0] * frame[0][0]
-				+ conv_kernel[0][1] * frame[0][1]
-				+ conv_kernel[0][2] * frame[0][2]
-				+ conv_kernel[1][0] * frame[1][0]
-				+ conv_kernel[1][1] * frame[1][1]
-				+ conv_kernel[1][2] * frame[1][2]
-				+ conv_kernel[2][0] * frame[2][0]
-				+ conv_kernel[2][1] * frame[2][1]
-				+ conv_kernel[2][2] * frame[2][2];
+				vals[i] = (conv_kernel[0][0] * frame[0][0]
+					+ conv_kernel[0][1] * frame[0][1]
+					+ conv_kernel[0][2] * frame[0][2]
+					+ conv_kernel[1][0] * frame[1][0]
+					+ conv_kernel[1][1] * frame[1][1]
+					+ conv_kernel[1][2] * frame[1][2]
+					+ conv_kernel[2][0] * frame[2][0]
+					+ conv_kernel[2][1] * frame[2][1]
+					+ conv_kernel[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
 	}
 }
 
@@ -1426,15 +1426,15 @@ __global__ void k_1D_gf_3x3_vectorized2_local(unsigned char* input, unsigned cha
 		frame[2][1] = bot.y;
 		frame[2][2] = bot.z;
 
-		vals[0] = conv_kernel[0][0] * frame[0][0]
-		+ conv_kernel[0][1] * frame[0][1]
-		+ conv_kernel[0][2] * frame[0][2]
-		+ conv_kernel[1][0] * frame[1][0]
-		+ conv_kernel[1][1] * frame[1][1]
-		+ conv_kernel[1][2] * frame[1][2]
-		+ conv_kernel[2][0] * frame[2][0]
-		+ conv_kernel[2][1] * frame[2][1]
-		+ conv_kernel[2][2] * frame[2][2];
+		vals[0] = (conv_kernel[0][0] * frame[0][0]
+			+ conv_kernel[0][1] * frame[0][1]
+			+ conv_kernel[0][2] * frame[0][2]
+			+ conv_kernel[1][0] * frame[1][0]
+			+ conv_kernel[1][1] * frame[1][1]
+			+ conv_kernel[1][2] * frame[1][2]
+			+ conv_kernel[2][0] * frame[2][0]
+			+ conv_kernel[2][1] * frame[2][1]
+			+ conv_kernel[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 2; i++) {
 			int _ty = ty + i;
@@ -1444,18 +1444,18 @@ __global__ void k_1D_gf_3x3_vectorized2_local(unsigned char* input, unsigned cha
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = conv_kernel[0][0] * frame[0][0]
-				+ conv_kernel[0][1] * frame[0][1]
-				+ conv_kernel[0][2] * frame[0][2]
-				+ conv_kernel[1][0] * frame[1][0]
-				+ conv_kernel[1][1] * frame[1][1]
-				+ conv_kernel[1][2] * frame[1][2]
-				+ conv_kernel[2][0] * frame[2][0]
-				+ conv_kernel[2][1] * frame[2][1]
-				+ conv_kernel[2][2] * frame[2][2];
+				vals[i] = (conv_kernel[0][0] * frame[0][0]
+					+ conv_kernel[0][1] * frame[0][1]
+					+ conv_kernel[0][2] * frame[0][2]
+					+ conv_kernel[1][0] * frame[1][0]
+					+ conv_kernel[1][1] * frame[1][1]
+					+ conv_kernel[1][2] * frame[1][2]
+					+ conv_kernel[2][0] * frame[2][0]
+					+ conv_kernel[2][1] * frame[2][1]
+					+ conv_kernel[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar2*>(&output[(tx * cols + ty)])[0] = make_uchar2(vals[0] >> 4, vals[1] >> 4);
+		reinterpret_cast<uchar2*>(&output[(tx * cols + ty)])[0] = make_uchar2(vals[0], vals[1]);
 	}
 }
 
@@ -1483,15 +1483,15 @@ __global__ void k_1D_gf_3x3_vectorized16_constant(unsigned char* input, unsigned
 		frame[2][1] = bot.y;
 		frame[2][2] = bot.z;
 
-		vals[0] = const_conv_kernel3x3[0][0] * frame[0][0]
-		+ const_conv_kernel3x3[0][1] * frame[0][1]
-		+ const_conv_kernel3x3[0][2] * frame[0][2]
-		+ const_conv_kernel3x3[1][0] * frame[1][0]
-		+ const_conv_kernel3x3[1][1] * frame[1][1]
-		+ const_conv_kernel3x3[1][2] * frame[1][2]
-		+ const_conv_kernel3x3[2][0] * frame[2][0]
-		+ const_conv_kernel3x3[2][1] * frame[2][1]
-		+ const_conv_kernel3x3[2][2] * frame[2][2];
+		vals[0] = (const_conv_kernel3x3[0][0] * frame[0][0]
+			+ const_conv_kernel3x3[0][1] * frame[0][1]
+			+ const_conv_kernel3x3[0][2] * frame[0][2]
+			+ const_conv_kernel3x3[1][0] * frame[1][0]
+			+ const_conv_kernel3x3[1][1] * frame[1][1]
+			+ const_conv_kernel3x3[1][2] * frame[1][2]
+			+ const_conv_kernel3x3[2][0] * frame[2][0]
+			+ const_conv_kernel3x3[2][1] * frame[2][1]
+			+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 16; i++) {
 			int _ty = ty + i;
@@ -1501,21 +1501,21 @@ __global__ void k_1D_gf_3x3_vectorized16_constant(unsigned char* input, unsigned
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = const_conv_kernel3x3[0][0] * frame[0][0]
-				+ const_conv_kernel3x3[0][1] * frame[0][1]
-				+ const_conv_kernel3x3[0][2] * frame[0][2]
-				+ const_conv_kernel3x3[1][0] * frame[1][0]
-				+ const_conv_kernel3x3[1][1] * frame[1][1]
-				+ const_conv_kernel3x3[1][2] * frame[1][2]
-				+ const_conv_kernel3x3[2][0] * frame[2][0]
-				+ const_conv_kernel3x3[2][1] * frame[2][1]
-				+ const_conv_kernel3x3[2][2] * frame[2][2];
+				vals[i] = (const_conv_kernel3x3[0][0] * frame[0][0]
+					+ const_conv_kernel3x3[0][1] * frame[0][1]
+					+ const_conv_kernel3x3[0][2] * frame[0][2]
+					+ const_conv_kernel3x3[1][0] * frame[1][0]
+					+ const_conv_kernel3x3[1][1] * frame[1][1]
+					+ const_conv_kernel3x3[1][2] * frame[1][2]
+					+ const_conv_kernel3x3[2][0] * frame[2][0]
+					+ const_conv_kernel3x3[2][1] * frame[2][1]
+					+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12] >> 4, vals[13] >> 4, vals[14] >> 4, vals[15] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8], vals[9], vals[10], vals[11]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12], vals[13], vals[14], vals[15]);
 	}
 }
 
@@ -2327,7 +2327,7 @@ __global__ void k_1D_gf_3x3_vectorized16_shared(unsigned char* input, unsigned c
 		frame[2][1] = cache[cx + 1][cy];
 		frame[2][2] = cache[cx + 1][cy + 1];
 
-		vals[0] = global_conv_kernel3x3[0][0] * frame[0][0]
+		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
 		+ global_conv_kernel3x3[0][1] * frame[0][1]
 		+ global_conv_kernel3x3[0][2] * frame[0][2]
 		+ global_conv_kernel3x3[1][0] * frame[1][0]
@@ -2335,7 +2335,7 @@ __global__ void k_1D_gf_3x3_vectorized16_shared(unsigned char* input, unsigned c
 		+ global_conv_kernel3x3[1][2] * frame[1][2]
 		+ global_conv_kernel3x3[2][0] * frame[2][0]
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2];
+		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 16; i++) {
 			int _ty = ty + i;
@@ -2346,7 +2346,7 @@ __global__ void k_1D_gf_3x3_vectorized16_shared(unsigned char* input, unsigned c
 			frame[2][2] = cache[cx + 1][_cy + 1];
 
 			if (_ty < cols - 1) {
-				vals[i] = global_conv_kernel3x3[0][0] * frame[0][0]
+				vals[i] = (global_conv_kernel3x3[0][0] * frame[0][0]
 				+ global_conv_kernel3x3[0][1] * frame[0][1]
 				+ global_conv_kernel3x3[0][2] * frame[0][2]
 				+ global_conv_kernel3x3[1][0] * frame[1][0]
@@ -2354,13 +2354,13 @@ __global__ void k_1D_gf_3x3_vectorized16_shared(unsigned char* input, unsigned c
 				+ global_conv_kernel3x3[1][2] * frame[1][2]
 				+ global_conv_kernel3x3[2][0] * frame[2][0]
 				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2];
+				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12] >> 4, vals[13] >> 4, vals[14] >> 4, vals[15] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8], vals[9], vals[10], vals[11]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 12)])[0] = make_uchar4(vals[12], vals[13], vals[14], vals[15]);
 	}
 }
 
@@ -2450,7 +2450,7 @@ __global__ void k_1D_gf_3x3_vectorized12_shared(unsigned char* input, unsigned c
 		frame[2][1] = cache[cx + 1][cy];
 		frame[2][2] = cache[cx + 1][cy + 1];
 
-		vals[0] = global_conv_kernel3x3[0][0] * frame[0][0]
+		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
 		+ global_conv_kernel3x3[0][1] * frame[0][1]
 		+ global_conv_kernel3x3[0][2] * frame[0][2]
 		+ global_conv_kernel3x3[1][0] * frame[1][0]
@@ -2458,7 +2458,7 @@ __global__ void k_1D_gf_3x3_vectorized12_shared(unsigned char* input, unsigned c
 		+ global_conv_kernel3x3[1][2] * frame[1][2]
 		+ global_conv_kernel3x3[2][0] * frame[2][0]
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2];
+		+ global_conv_kernel3x3[2][2] * frame[2][2] >> 4);
 
 		for (int i = 1; i < 12; i++) {
 			int _ty = ty + i;
@@ -2469,7 +2469,7 @@ __global__ void k_1D_gf_3x3_vectorized12_shared(unsigned char* input, unsigned c
 			frame[2][2] = cache[cx + 1][_cy + 1];
 
 			if (_ty < cols - 1) {
-				vals[i] = global_conv_kernel3x3[0][0] * frame[0][0]
+				vals[i] = (global_conv_kernel3x3[0][0] * frame[0][0]
 				+ global_conv_kernel3x3[0][1] * frame[0][1]
 				+ global_conv_kernel3x3[0][2] * frame[0][2]
 				+ global_conv_kernel3x3[1][0] * frame[1][0]
@@ -2477,12 +2477,12 @@ __global__ void k_1D_gf_3x3_vectorized12_shared(unsigned char* input, unsigned c
 				+ global_conv_kernel3x3[1][2] * frame[1][2]
 				+ global_conv_kernel3x3[2][0] * frame[2][0]
 				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2];
+				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8], vals[9], vals[10], vals[11]);
 	}
 }
 
@@ -2556,7 +2556,7 @@ __global__ void k_1D_gf_3x3_vectorized8_shared(unsigned char* input, unsigned ch
 		frame[2][1] = cache[cx + 1][cy];
 		frame[2][2] = cache[cx + 1][cy + 1];
 
-		vals[0] = global_conv_kernel3x3[0][0] * frame[0][0]
+		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
 		+ global_conv_kernel3x3[0][1] * frame[0][1]
 		+ global_conv_kernel3x3[0][2] * frame[0][2]
 		+ global_conv_kernel3x3[1][0] * frame[1][0]
@@ -2564,7 +2564,7 @@ __global__ void k_1D_gf_3x3_vectorized8_shared(unsigned char* input, unsigned ch
 		+ global_conv_kernel3x3[1][2] * frame[1][2]
 		+ global_conv_kernel3x3[2][0] * frame[2][0]
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2];
+		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 8; i++) {
 			int _ty = ty + i;
@@ -2575,7 +2575,7 @@ __global__ void k_1D_gf_3x3_vectorized8_shared(unsigned char* input, unsigned ch
 			frame[2][2] = cache[cx + 1][_cy + 1];
 
 			if (_ty < cols - 1) {
-				vals[i] = global_conv_kernel3x3[0][0] * frame[0][0]
+				vals[i] = (global_conv_kernel3x3[0][0] * frame[0][0]
 				+ global_conv_kernel3x3[0][1] * frame[0][1]
 				+ global_conv_kernel3x3[0][2] * frame[0][2]
 				+ global_conv_kernel3x3[1][0] * frame[1][0]
@@ -2583,11 +2583,11 @@ __global__ void k_1D_gf_3x3_vectorized8_shared(unsigned char* input, unsigned ch
 				+ global_conv_kernel3x3[1][2] * frame[1][2]
 				+ global_conv_kernel3x3[2][0] * frame[2][0]
 				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2];
+				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
 	}
 }
 
@@ -2644,7 +2644,7 @@ __global__ void k_1D_gf_3x3_vectorized4_shared(unsigned char* input, unsigned ch
 		frame[2][1] = cache[cx + 1][cy];
 		frame[2][2] = cache[cx + 1][cy + 1];
 
-		vals[0] = global_conv_kernel3x3[0][0] * frame[0][0]
+		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
 		+ global_conv_kernel3x3[0][1] * frame[0][1]
 		+ global_conv_kernel3x3[0][2] * frame[0][2]
 		+ global_conv_kernel3x3[1][0] * frame[1][0]
@@ -2652,7 +2652,7 @@ __global__ void k_1D_gf_3x3_vectorized4_shared(unsigned char* input, unsigned ch
 		+ global_conv_kernel3x3[1][2] * frame[1][2]
 		+ global_conv_kernel3x3[2][0] * frame[2][0]
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2];
+		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 4; i++) {
 			int _ty = ty + i;
@@ -2663,7 +2663,7 @@ __global__ void k_1D_gf_3x3_vectorized4_shared(unsigned char* input, unsigned ch
 			frame[2][2] = cache[cx + 1][_cy + 1];
 
 			if (_ty < cols - 1) {
-				vals[i] = global_conv_kernel3x3[0][0] * frame[0][0]
+				vals[i] = (global_conv_kernel3x3[0][0] * frame[0][0]
 				+ global_conv_kernel3x3[0][1] * frame[0][1]
 				+ global_conv_kernel3x3[0][2] * frame[0][2]
 				+ global_conv_kernel3x3[1][0] * frame[1][0]
@@ -2671,10 +2671,10 @@ __global__ void k_1D_gf_3x3_vectorized4_shared(unsigned char* input, unsigned ch
 				+ global_conv_kernel3x3[1][2] * frame[1][2]
 				+ global_conv_kernel3x3[2][0] * frame[2][0]
 				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2];
+				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
 	}
 }
 
@@ -2726,7 +2726,7 @@ __global__ void k_1D_gf_3x3_vectorized2_shared(unsigned char* input, unsigned ch
 		frame[2][1] = cache[cx + 1][cy];
 		frame[2][2] = cache[cx + 1][cy + 1];
 
-		vals[0] = global_conv_kernel3x3[0][0] * frame[0][0]
+		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
 		+ global_conv_kernel3x3[0][1] * frame[0][1]
 		+ global_conv_kernel3x3[0][2] * frame[0][2]
 		+ global_conv_kernel3x3[1][0] * frame[1][0]
@@ -2734,7 +2734,7 @@ __global__ void k_1D_gf_3x3_vectorized2_shared(unsigned char* input, unsigned ch
 		+ global_conv_kernel3x3[1][2] * frame[1][2]
 		+ global_conv_kernel3x3[2][0] * frame[2][0]
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2];
+		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
 		for (int i = 1; i < 2; i++) {
 			int _ty = ty + i;
@@ -2745,18 +2745,18 @@ __global__ void k_1D_gf_3x3_vectorized2_shared(unsigned char* input, unsigned ch
 			frame[2][2] = cache[cx + 1][_cy + 1];
 
 			if (_ty < cols - 1) {
-				vals[i] = global_conv_kernel3x3[0][0] * frame[0][0]
-				+ global_conv_kernel3x3[0][1] * frame[0][1]
-				+ global_conv_kernel3x3[0][2] * frame[0][2]
-				+ global_conv_kernel3x3[1][0] * frame[1][0]
-				+ global_conv_kernel3x3[1][1] * frame[1][1]
-				+ global_conv_kernel3x3[1][2] * frame[1][2]
-				+ global_conv_kernel3x3[2][0] * frame[2][0]
-				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2];
+				vals[i] = (global_conv_kernel3x3[0][0] * frame[0][0]
+					+ global_conv_kernel3x3[0][1] * frame[0][1]
+					+ global_conv_kernel3x3[0][2] * frame[0][2]
+					+ global_conv_kernel3x3[1][0] * frame[1][0]
+					+ global_conv_kernel3x3[1][1] * frame[1][1]
+					+ global_conv_kernel3x3[1][2] * frame[1][2]
+					+ global_conv_kernel3x3[2][0] * frame[2][0]
+					+ global_conv_kernel3x3[2][1] * frame[2][1]
+					+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar2*>(&output[(tx * cols + ty)])[0] = make_uchar2(vals[0] >> 4, vals[1] >> 4);
+		reinterpret_cast<uchar2*>(&output[(tx * cols + ty)])[0] = make_uchar2(vals[0], vals[1]);
 	}
 }
 

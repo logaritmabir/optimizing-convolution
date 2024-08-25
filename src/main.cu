@@ -18,9 +18,9 @@ int main(int argc, char** argv)
 
     //std::string img_path256 = "C:/Users/ben/Desktop/optimizing-convolution/images/256.png";
     //std::string img_path512 = "C:/Users/ben/Desktop/optimizing-convolution/images/512.png";
-    //std::string img_path1024 = "C:/Users/ben/Desktop/optimizing-convolution/images/1024.png";
+    std::string img_path1024 = "C:/Users/ben/Desktop/optimizing-convolution/images/1024.png";
     //std::string img_path2048 = "C:/Users/ben/Desktop/optimizing-convolution/images/2048.png";
-    std::string img_path4096 = "C:/Users/ben/Desktop/optimizing-convolution/images/4096.png";
+    //std::string img_path4096 = "C:/Users/ben/Desktop/optimizing-convolution/images/4096.png";
     //std::string img_path8192 = "C:/Users/ben/Desktop/optimizing-convolution/images/8192.png";
 
     std::vector<cv::Mat> input_images;
@@ -28,10 +28,10 @@ int main(int argc, char** argv)
     std::vector<cv::Mat> gray_input_images_f32;
 
     // gray_input_images.push_back(cv::imread(img_path256, cv::IMREAD_GRAYSCALE));
-    // gray_input_images.push_back(cv::imread(img_path512, cv::IMREAD_GRAYSCALE));
-    // gray_input_images.push_back(cv::imread(img_path1024, cv::IMREAD_GRAYSCALE));
+    //gray_input_images.push_back(cv::imread(img_path512, cv::IMREAD_GRAYSCALE));
+    gray_input_images.push_back(cv::imread(img_path1024, cv::IMREAD_GRAYSCALE));
     // gray_input_images.push_back(cv::imread(img_path2048, cv::IMREAD_GRAYSCALE));
-    gray_input_images.push_back(cv::imread(img_path4096, cv::IMREAD_GRAYSCALE));
+    //gray_input_images.push_back(cv::imread(img_path4096, cv::IMREAD_GRAYSCALE));
     //gray_input_images.push_back(cv::imread(img_path8192, cv::IMREAD_GRAYSCALE));
 
     //for (const cv::Mat& e : gray_input_images) {
