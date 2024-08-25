@@ -8,19 +8,16 @@ enum GAUSSIAN {
 	GAUSSIAN_3x3_constant,
 	GAUSSIAN_3x3_shared,
 
-	GAUSSIAN_3x3_load_balance32_global,
 	GAUSSIAN_3x3_load_balance16_global,
 	GAUSSIAN_3x3_load_balance12_global,
 	GAUSSIAN_3x3_load_balance8_global,
 	GAUSSIAN_3x3_load_balance4_global,
 	GAUSSIAN_3x3_load_balance2_global,		
 
-	GAUSSIAN_3x3_vectorized32_global,
 	GAUSSIAN_3x3_vectorized16_global,
 	GAUSSIAN_3x3_vectorized12_global,
 	GAUSSIAN_3x3_vectorized8_global,
 	GAUSSIAN_3x3_vectorized4_global,
-	GAUSSIAN_3x3_vectorized3_global,
 	GAUSSIAN_3x3_vectorized2_global,
 
 	GAUSSIAN_3x3_load_balance16_local,
