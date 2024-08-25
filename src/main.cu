@@ -2,8 +2,6 @@
 #define __GPU__
 
 #include "gaussian.cuh"
-#include "gamma.cuh"
-#include "histogram.cuh"
 
 #endif
 
@@ -48,71 +46,64 @@ int main(int argc, char** argv)
     //}
 
     std::vector <cv::Mat> output1;
-    std::vector <cv::Mat> output2;
-    std::vector <cv::Mat> output3;
-    std::vector <cv::Mat> output4;
-    std::vector <cv::Mat> output5;
-    std::vector <cv::Mat> output6;
-    std::vector <cv::Mat> output7;
-    std::vector <cv::Mat> output8;
 
-    for (int i = 0; i < gray_input_images.size(); i++) {
-        cv::Mat clonedImage = gray_input_images.at(i).clone();
-
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_global);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance2_global);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance4_global);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance8_global);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance12_global);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance16_global);
-
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized2_global);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized4_global);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized8_global);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized12_global);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized16_global);
-
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_constant);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance2_constant);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance4_constant);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance8_constant);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance12_constant);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance16_constant);
-
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized2_constant);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized4_constant);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized8_constant);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized12_constant);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized16_constant);
-
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_local);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance2_local);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance4_local);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance8_local);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance12_local);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance16_local);
-
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized2_local);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized4_local);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized8_local);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized12_local);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized16_local);
-
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_shared);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance2_shared);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance4_shared);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance8_shared);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance12_shared);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_load_balance16_shared);
-
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized2_shared);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized4_shared);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized8_shared);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized12_shared);
-        gf_1d_gpu(&clonedImage, &output1.at(i), GAUSSIAN_3x3_vectorized16_shared);
+    for (cv::Mat& e : gray_input_images) {
+        output1.push_back(e.clone());
     }
 
-    cv::imshow("demo", output1.at(0));
-    cv::waitKey(0);
+    for (int i = 0; i < gray_input_images.size(); i++) {
+
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_global);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance2_global);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance4_global);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance8_global);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance12_global);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance16_global);
+
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized2_global);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized4_global);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized8_global);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized12_global);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized16_global);
+
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_constant);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance2_constant);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance4_constant);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance8_constant);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance12_constant);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance16_constant);
+
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized2_constant);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized4_constant);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized8_constant);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized12_constant);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized16_constant);
+
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_local);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance2_local);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance4_local);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance8_local);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance12_local);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance16_local);
+
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized2_local);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized4_local);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized8_local);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized12_local);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized16_local);
+
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_shared);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance2_shared);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance4_shared);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance8_shared);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance12_shared);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_load_balance16_shared);
+
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized2_shared);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized4_shared);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized8_shared);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized12_shared);
+        gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized16_shared);
+    }
     return 0;
 }
