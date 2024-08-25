@@ -81,20 +81,22 @@ __global__ void k_1D_gf_3x3_shared(unsigned char* input, unsigned char* output, 
 	unsigned int cy = threadIdx.x + 1;
 	unsigned int cx = threadIdx.y + 1;
 
-	cache[cx][cy] = input[tx * cols + ty];
+    if (tx < rows && ty < cols) {
+        cache[cx][cy] = input[tx * cols + ty];
+    }
 
-	if (cx == 1) {
-		cache[0][cy] = input[((tx - 1) * cols + ty)];
-	}
-	if (cx == 32) {
-		cache[33][cy] = input[((tx + 1) * cols + ty)];
-	}
-	if (cy == 1) {
-		cache[cx][0] = input[((tx)*cols + ty - 1)];
-	}
-	if (cy == 32) {
-		cache[cx][33] = input[((tx)*cols + ty + 1)];
-	}
+    if (cx == 1 && tx > 0) {
+        cache[0][cy] = input[(tx - 1) * cols + ty];
+    }
+    if (cx == 32 && tx < rows - 1) {
+        cache[33][cy] = input[(tx + 1) * cols + ty];
+    }
+    if (cy == 1 && ty > 0) {
+        cache[cx][0] = input[tx * cols + ty - 1];
+    }
+    if (cy == 32 && ty < cols - 1) {
+        cache[cx][33] = input[tx * cols + ty + 1];
+    }
 	__syncthreads();
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
@@ -2951,4 +2953,5 @@ void gf_1d_gpu(cv::Mat* input_img, cv::Mat* output_img, GAUSSIAN ver)
 	cudaFree(d_input);
 	cudaFree(d_output);
 	cudaDeviceReset();
+
 }

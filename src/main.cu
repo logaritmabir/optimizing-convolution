@@ -14,10 +14,10 @@ int main(int argc, char** argv)
 {
     cv::utils::logging::setLogLevel(cv::utils::logging::LogLevel::LOG_LEVEL_SILENT); /*suppressing annoying OpenCV infos in cmdline*/
 
-    std::string img_path256 = "C:/Users/ben/Desktop/optimizing-convolution/images/256.png";
-    std::string img_path512 = "C:/Users/ben/Desktop/optimizing-convolution/images/512.png";
-    std::string img_path1024 = "C:/Users/ben/Desktop/optimizing-convolution/images/1024.png";
-    std::string img_path2048 = "C:/Users/ben/Desktop/optimizing-convolution/images/2048.png";
+    //std::string img_path256 = "C:/Users/ben/Desktop/optimizing-convolution/images/256.png";
+    //std::string img_path512 = "C:/Users/ben/Desktop/optimizing-convolution/images/512.png";
+    //std::string img_path1024 = "C:/Users/ben/Desktop/optimizing-convolution/images/1024.png";
+    //std::string img_path2048 = "C:/Users/ben/Desktop/optimizing-convolution/images/2048.png";
     std::string img_path4096 = "C:/Users/ben/Desktop/optimizing-convolution/images/4096.png";
     //std::string img_path8192 = "C:/Users/ben/Desktop/optimizing-convolution/images/8192.png";
 
