@@ -15,18 +15,12 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 set(CUDA_FILES
-    src/gamma-kernels.cu
     src/gaussian-kernels.cu
-    src/histogram-kernels.cu
-    src/multithreaded.cu
-    src/singlethreaded.cu
 )
 
 set(CUDA_HEADERS
     include/dependencies.cuh
-    include/gamma.cuh
     include/gaussian.cuh
-    include/histogram.cuh
 )
 
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-O3)
