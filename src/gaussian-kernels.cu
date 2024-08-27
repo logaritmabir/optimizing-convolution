@@ -871,6 +871,477 @@ __global__ void k_1D_gf_3x3_load_balance2_constant(unsigned char* input, unsigne
 	}
 }
 
+__global__ void k_1D_gf_3x3_load_balance16_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][514];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 16 + 1;
+	int cx = threadIdx.y + 1;
+
+	if ((tx > 0 && tx < rows - 1) && (ty < cols - 1)) {
+		cache[cx][cy] = input[tx * cols + ty];
+		cache[cx][cy + 1] = input[tx * cols + ty + 1];
+		cache[cx][cy + 2] = input[tx * cols + ty + 2];
+		cache[cx][cy + 3] = input[tx * cols + ty + 3];
+		cache[cx][cy + 4] = input[tx * cols + ty + 4];
+		cache[cx][cy + 5] = input[tx * cols + ty + 5];
+		cache[cx][cy + 6] = input[tx * cols + ty + 6];
+		cache[cx][cy + 7] = input[tx * cols + ty + 7];
+		cache[cx][cy + 8] = input[tx * cols + ty + 8];
+		cache[cx][cy + 9] = input[tx * cols + ty + 9];
+		cache[cx][cy + 10] = input[tx * cols + ty + 10];
+		cache[cx][cy + 11] = input[tx * cols + ty + 11];
+		cache[cx][cy + 12] = input[tx * cols + ty + 12];
+		cache[cx][cy + 13] = input[tx * cols + ty + 13];
+		cache[cx][cy + 14] = input[tx * cols + ty + 14];
+		cache[cx][cy + 15] = input[tx * cols + ty + 15];
+		if (cx == 1) { /*top row*/
+			cache[0][cy] = input[((tx - 1) * cols + ty)];
+			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
+			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
+			cache[0][cy + 3] = input[((tx - 1) * cols + ty + 3)];
+			cache[0][cy + 4] = input[((tx - 1) * cols + ty + 4)];
+			cache[0][cy + 5] = input[((tx - 1) * cols + ty + 5)];
+			cache[0][cy + 6] = input[((tx - 1) * cols + ty + 6)];
+			cache[0][cy + 7] = input[((tx - 1) * cols + ty + 7)];
+			cache[0][cy + 8] = input[((tx - 1) * cols + ty + 8)];
+			cache[0][cy + 9] = input[((tx - 1) * cols + ty + 9)];
+			cache[0][cy + 10] = input[((tx - 1) * cols + ty + 10)];
+			cache[0][cy + 11] = input[((tx - 1) * cols + ty + 11)];
+			cache[0][cy + 12] = input[((tx - 1) * cols + ty + 12)];
+			cache[0][cy + 13] = input[((tx - 1) * cols + ty + 13)];
+			cache[0][cy + 14] = input[((tx - 1) * cols + ty + 14)];
+			cache[0][cy + 15] = input[((tx - 1) * cols + ty + 15)];
+		}
+		if (cx == 32) { /*bottom row*/
+			cache[33][cy] = input[((tx + 1) * cols + ty)];
+			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
+			cache[33][cy + 2] = input[((tx + 1) * cols + ty + 2)];
+			cache[33][cy + 3] = input[((tx + 1) * cols + ty + 3)];
+			cache[33][cy + 4] = input[((tx + 1) * cols + ty + 4)];
+			cache[33][cy + 5] = input[((tx + 1) * cols + ty + 5)];
+			cache[33][cy + 6] = input[((tx + 1) * cols + ty + 6)];
+			cache[33][cy + 7] = input[((tx + 1) * cols + ty + 7)];
+			cache[33][cy + 8] = input[((tx + 1) * cols + ty + 8)];
+			cache[33][cy + 9] = input[((tx + 1) * cols + ty + 9)];
+			cache[33][cy + 10] = input[((tx + 1) * cols + ty + 10)];
+			cache[33][cy + 11] = input[((tx + 1) * cols + ty + 11)];
+			cache[33][cy + 12] = input[((tx + 1) * cols + ty + 12)];
+			cache[33][cy + 13] = input[((tx + 1) * cols + ty + 13)];
+			cache[33][cy + 14] = input[((tx + 1) * cols + ty + 14)];
+			cache[33][cy + 15] = input[((tx + 1) * cols + ty + 15)];
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 497) {/*right column*/
+			cache[cx][513] = input[((tx)*cols + ty + 16)];
+		}
+
+		__syncthreads();
+
+		unsigned char frame[3][3];
+
+		frame[0][0] = cache[cx - 1][cy - 1];
+		frame[0][1] = cache[cx - 1][cy];
+		frame[0][2] = cache[cx - 1][cy + 1];
+		frame[1][0] = cache[cx][cy - 1];
+		frame[1][1] = cache[cx][cy];
+		frame[1][2] = cache[cx][cy + 1];
+		frame[2][0] = cache[cx + 1][cy - 1];
+		frame[2][1] = cache[cx + 1][cy];
+		frame[2][2] = cache[cx + 1][cy + 1];
+
+		output[tx * cols + ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
+		+ global_conv_kernel3x3[0][1] * frame[0][1]
+		+ global_conv_kernel3x3[0][2] * frame[0][2]
+		+ global_conv_kernel3x3[1][0] * frame[1][0]
+		+ global_conv_kernel3x3[1][1] * frame[1][1]
+		+ global_conv_kernel3x3[1][2] * frame[1][2]
+		+ global_conv_kernel3x3[2][0] * frame[2][0]
+		+ global_conv_kernel3x3[2][1] * frame[2][1]
+		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
+
+		for (int i = 1; i < 16; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			shift_left(frame);
+			frame[0][2] = cache[cx - 1][_cy + 1];
+			frame[1][2] = cache[cx][_cy + 1];
+			frame[2][2] = cache[cx + 1][_cy + 1];
+
+			if (_ty < cols - 1) {
+				output[tx * cols + _ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
+				+ global_conv_kernel3x3[0][1] * frame[0][1]
+				+ global_conv_kernel3x3[0][2] * frame[0][2]
+				+ global_conv_kernel3x3[1][0] * frame[1][0]
+				+ global_conv_kernel3x3[1][1] * frame[1][1]
+				+ global_conv_kernel3x3[1][2] * frame[1][2]
+				+ global_conv_kernel3x3[2][0] * frame[2][0]
+				+ global_conv_kernel3x3[2][1] * frame[2][1]
+				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
+			}
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance12_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][386];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 12 + 1;
+	int cx = threadIdx.y + 1;
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		cache[cx][cy] = input[tx * cols + ty];
+		cache[cx][cy + 1] = input[tx * cols + ty + 1];
+		cache[cx][cy + 2] = input[tx * cols + ty + 2];
+		cache[cx][cy + 3] = input[tx * cols + ty + 3];
+		cache[cx][cy + 4] = input[tx * cols + ty + 4];
+		cache[cx][cy + 5] = input[tx * cols + ty + 5];
+		cache[cx][cy + 6] = input[tx * cols + ty + 6];
+		cache[cx][cy + 7] = input[tx * cols + ty + 7];
+		cache[cx][cy + 8] = input[tx * cols + ty + 8];
+		cache[cx][cy + 9] = input[tx * cols + ty + 9];
+		cache[cx][cy + 10] = input[tx * cols + ty + 10];
+		cache[cx][cy + 11] = input[tx * cols + ty + 11];
+		if (cx == 1) { /*top row*/
+			cache[0][cy] = input[((tx - 1) * cols + ty)];
+			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
+			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
+			cache[0][cy + 3] = input[((tx - 1) * cols + ty + 3)];
+			cache[0][cy + 4] = input[((tx - 1) * cols + ty + 4)];
+			cache[0][cy + 5] = input[((tx - 1) * cols + ty + 5)];
+			cache[0][cy + 6] = input[((tx - 1) * cols + ty + 6)];
+			cache[0][cy + 7] = input[((tx - 1) * cols + ty + 7)];
+			cache[0][cy + 8] = input[((tx - 1) * cols + ty + 8)];
+			cache[0][cy + 9] = input[((tx - 1) * cols + ty + 9)];
+			cache[0][cy + 10] = input[((tx - 1) * cols + ty + 10)];
+			cache[0][cy + 11] = input[((tx - 1) * cols + ty + 11)];
+		}
+		if (cx == 32) { /*bottom row*/
+			cache[33][cy] = input[((tx + 1) * cols + ty)];
+			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
+			cache[33][cy + 2] = input[((tx + 1) * cols + ty + 2)];
+			cache[33][cy + 3] = input[((tx + 1) * cols + ty + 3)];
+			cache[33][cy + 4] = input[((tx + 1) * cols + ty + 4)];
+			cache[33][cy + 5] = input[((tx + 1) * cols + ty + 5)];
+			cache[33][cy + 6] = input[((tx + 1) * cols + ty + 6)];
+			cache[33][cy + 7] = input[((tx + 1) * cols + ty + 7)];
+			cache[33][cy + 8] = input[((tx + 1) * cols + ty + 8)];
+			cache[33][cy + 9] = input[((tx + 1) * cols + ty + 9)];
+			cache[33][cy + 10] = input[((tx + 1) * cols + ty + 10)];
+			cache[33][cy + 11] = input[((tx + 1) * cols + ty + 11)];
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 373) {/*right column*/
+			cache[cx][385] = input[((tx)*cols + ty + 12)];
+		}
+
+		__syncthreads();
+
+		unsigned char frame[3][3];
+
+		frame[0][0] = cache[cx - 1][cy - 1];
+		frame[0][1] = cache[cx - 1][cy];
+		frame[0][2] = cache[cx - 1][cy + 1];
+		frame[1][0] = cache[cx][cy - 1];
+		frame[1][1] = cache[cx][cy];
+		frame[1][2] = cache[cx][cy + 1];
+		frame[2][0] = cache[cx + 1][cy - 1];
+		frame[2][1] = cache[cx + 1][cy];
+		frame[2][2] = cache[cx + 1][cy + 1];
+
+		output[tx * cols + ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
+		+ global_conv_kernel3x3[0][1] * frame[0][1]
+		+ global_conv_kernel3x3[0][2] * frame[0][2]
+		+ global_conv_kernel3x3[1][0] * frame[1][0]
+		+ global_conv_kernel3x3[1][1] * frame[1][1]
+		+ global_conv_kernel3x3[1][2] * frame[1][2]
+		+ global_conv_kernel3x3[2][0] * frame[2][0]
+		+ global_conv_kernel3x3[2][1] * frame[2][1]
+		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
+
+		for (int i = 1; i < 12; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			shift_left(frame);
+			frame[0][2] = cache[cx - 1][_cy + 1];
+			frame[1][2] = cache[cx][_cy + 1];
+			frame[2][2] = cache[cx + 1][_cy + 1];
+
+			if (_ty < cols - 1) {
+				output[tx * cols + _ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
+				+ global_conv_kernel3x3[0][1] * frame[0][1]
+				+ global_conv_kernel3x3[0][2] * frame[0][2]
+				+ global_conv_kernel3x3[1][0] * frame[1][0]
+				+ global_conv_kernel3x3[1][1] * frame[1][1]
+				+ global_conv_kernel3x3[1][2] * frame[1][2]
+				+ global_conv_kernel3x3[2][0] * frame[2][0]
+				+ global_conv_kernel3x3[2][1] * frame[2][1]
+				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
+			}
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance8_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][260];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 8 + 1;
+	int cx = threadIdx.y + 1;
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		cache[cx][cy] = input[tx * cols + ty];
+		cache[cx][cy + 1] = input[tx * cols + ty + 1];
+		cache[cx][cy + 2] = input[tx * cols + ty + 2];
+		cache[cx][cy + 3] = input[tx * cols + ty + 3];
+		cache[cx][cy + 4] = input[tx * cols + ty + 4];
+		cache[cx][cy + 5] = input[tx * cols + ty + 5];
+		cache[cx][cy + 6] = input[tx * cols + ty + 6];
+		cache[cx][cy + 7] = input[tx * cols + ty + 7];
+		if (cx == 1) { /*top row*/
+			cache[0][cy] = input[((tx - 1) * cols + ty)];
+			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
+			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
+			cache[0][cy + 3] = input[((tx - 1) * cols + ty + 3)];
+			cache[0][cy + 4] = input[((tx - 1) * cols + ty + 4)];
+			cache[0][cy + 5] = input[((tx - 1) * cols + ty + 5)];
+			cache[0][cy + 6] = input[((tx - 1) * cols + ty + 6)];
+			cache[0][cy + 7] = input[((tx - 1) * cols + ty + 7)];
+		}
+		if (cx == 32) { /*bottom row*/
+			cache[33][cy] = input[((tx + 1) * cols + ty)];
+			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
+			cache[33][cy + 2] = input[((tx + 1) * cols + ty + 2)];
+			cache[33][cy + 3] = input[((tx + 1) * cols + ty + 3)];
+			cache[33][cy + 4] = input[((tx + 1) * cols + ty + 4)];
+			cache[33][cy + 5] = input[((tx + 1) * cols + ty + 5)];
+			cache[33][cy + 6] = input[((tx + 1) * cols + ty + 6)];
+			cache[33][cy + 7] = input[((tx + 1) * cols + ty + 7)];
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 249) {/*right column*/
+			cache[cx][257] = input[((tx)*cols + ty + 8)];
+		}
+		__syncthreads();
+
+		unsigned char frame[3][3];
+
+		frame[0][0] = cache[cx - 1][cy - 1];
+		frame[0][1] = cache[cx - 1][cy];
+		frame[0][2] = cache[cx - 1][cy + 1];
+		frame[1][0] = cache[cx][cy - 1];
+		frame[1][1] = cache[cx][cy];
+		frame[1][2] = cache[cx][cy + 1];
+		frame[2][0] = cache[cx + 1][cy - 1];
+		frame[2][1] = cache[cx + 1][cy];
+		frame[2][2] = cache[cx + 1][cy + 1];
+
+		output[tx * cols + ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
+		+ global_conv_kernel3x3[0][1] * frame[0][1]
+		+ global_conv_kernel3x3[0][2] * frame[0][2]
+		+ global_conv_kernel3x3[1][0] * frame[1][0]
+		+ global_conv_kernel3x3[1][1] * frame[1][1]
+		+ global_conv_kernel3x3[1][2] * frame[1][2]
+		+ global_conv_kernel3x3[2][0] * frame[2][0]
+		+ global_conv_kernel3x3[2][1] * frame[2][1]
+		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
+
+
+		for (int i = 1; i < 8; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			shift_left(frame);
+			frame[0][2] = cache[cx - 1][_cy + 1];
+			frame[1][2] = cache[cx][_cy + 1];
+			frame[2][2] = cache[cx + 1][_cy + 1];
+
+			if (_ty < cols - 1) {
+				output[tx * cols + _ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
+				+ global_conv_kernel3x3[0][1] * frame[0][1]
+				+ global_conv_kernel3x3[0][2] * frame[0][2]
+				+ global_conv_kernel3x3[1][0] * frame[1][0]
+				+ global_conv_kernel3x3[1][1] * frame[1][1]
+				+ global_conv_kernel3x3[1][2] * frame[1][2]
+				+ global_conv_kernel3x3[2][0] * frame[2][0]
+				+ global_conv_kernel3x3[2][1] * frame[2][1]
+				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
+			}
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance4_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][130];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 4 + 1;
+	int cx = threadIdx.y + 1;
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+	cache[cx][cy] = input[tx * cols + ty];
+	cache[cx][cy + 1] = input[tx * cols + ty + 1];
+	cache[cx][cy + 2] = input[tx * cols + ty + 2];
+	cache[cx][cy + 3] = input[tx * cols + ty + 3];
+		
+		if (cx == 1) { /*top row*/
+			cache[0][cy] = input[((tx - 1) * cols + ty)];
+			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
+			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
+			cache[0][cy + 3] = input[((tx - 1) * cols + ty + 3)];
+		}
+		if (cx == 32) { /*bottom row*/
+			cache[33][cy] = input[((tx + 1) * cols + ty)];
+			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
+			cache[33][cy + 2] = input[((tx + 1) * cols + ty + 2)];
+			cache[33][cy + 3] = input[((tx + 1) * cols + ty + 3)];
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 125) {/*right column*/
+			cache[cx][129] = input[((tx)*cols + ty + 4)];
+		}
+		__syncthreads();
+
+		unsigned char frame[3][3];
+
+		frame[0][0] = cache[cx - 1][cy - 1];
+		frame[0][1] = cache[cx - 1][cy];
+		frame[0][2] = cache[cx - 1][cy + 1];
+		frame[1][0] = cache[cx][cy - 1];
+		frame[1][1] = cache[cx][cy];
+		frame[1][2] = cache[cx][cy + 1];
+		frame[2][0] = cache[cx + 1][cy - 1];
+		frame[2][1] = cache[cx + 1][cy];
+		frame[2][2] = cache[cx + 1][cy + 1];
+
+		output[tx * cols + ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
+		+ global_conv_kernel3x3[0][1] * frame[0][1]
+		+ global_conv_kernel3x3[0][2] * frame[0][2]
+		+ global_conv_kernel3x3[1][0] * frame[1][0]
+		+ global_conv_kernel3x3[1][1] * frame[1][1]
+		+ global_conv_kernel3x3[1][2] * frame[1][2]
+		+ global_conv_kernel3x3[2][0] * frame[2][0]
+		+ global_conv_kernel3x3[2][1] * frame[2][1]
+		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
+
+		for (int i = 1; i < 4; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			shift_left(frame);
+			frame[0][2] = cache[cx - 1][_cy + 1];
+			frame[1][2] = cache[cx][_cy + 1];
+			frame[2][2] = cache[cx + 1][_cy + 1];
+
+			if (_ty < cols - 1) {
+				output[tx * cols + _ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
+				+ global_conv_kernel3x3[0][1] * frame[0][1]
+				+ global_conv_kernel3x3[0][2] * frame[0][2]
+				+ global_conv_kernel3x3[1][0] * frame[1][0]
+				+ global_conv_kernel3x3[1][1] * frame[1][1]
+				+ global_conv_kernel3x3[1][2] * frame[1][2]
+				+ global_conv_kernel3x3[2][0] * frame[2][0]
+				+ global_conv_kernel3x3[2][1] * frame[2][1]
+				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
+			}
+		}
+	}
+}
+
+__global__ void k_1D_gf_3x3_load_balance2_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+{
+	__shared__  unsigned char cache[34][66];
+
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int cy = threadIdx.x * 2 + 1;
+	int cx = threadIdx.y + 1;
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		cache[cx][cy] = input[tx * cols + ty];
+		cache[cx][cy + 1] = input[tx * cols + ty + 1];
+
+		if (cx == 1) { /*top row*/
+			cache[0][cy] = input[((tx - 1) * cols + ty)];
+			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
+		}
+		if (cx == 32) { /*bottom row*/
+			cache[33][cy] = input[((tx + 1) * cols + ty)];
+			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
+		}
+		if (cy == 1) {/*left column*/
+			cache[cx][0] = input[((tx)*cols + ty - 1)];
+		}
+		if (cy == 63) {/*right column*/
+			cache[cx][65] = input[((tx)*cols + ty + 2)];
+		}
+		__syncthreads();
+
+		unsigned char frame[3][3];
+
+		frame[0][0] = cache[cx - 1][cy - 1];
+		frame[0][1] = cache[cx - 1][cy];
+		frame[0][2] = cache[cx - 1][cy + 1];
+		frame[1][0] = cache[cx][cy - 1];
+		frame[1][1] = cache[cx][cy];
+		frame[1][2] = cache[cx][cy + 1];
+		frame[2][0] = cache[cx + 1][cy - 1];
+		frame[2][1] = cache[cx + 1][cy];
+		frame[2][2] = cache[cx + 1][cy + 1];
+
+		output[tx * cols + ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
+		+ global_conv_kernel3x3[0][1] * frame[0][1]
+		+ global_conv_kernel3x3[0][2] * frame[0][2]
+		+ global_conv_kernel3x3[1][0] * frame[1][0]
+		+ global_conv_kernel3x3[1][1] * frame[1][1]
+		+ global_conv_kernel3x3[1][2] * frame[1][2]
+		+ global_conv_kernel3x3[2][0] * frame[2][0]
+		+ global_conv_kernel3x3[2][1] * frame[2][1]
+		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
+
+		for (int i = 1; i < 2; i++) {
+			int _ty = ty + i;
+			int _cy = cy + i;
+			shift_left(frame);
+			frame[0][2] = cache[cx - 1][_cy + 1];
+			frame[1][2] = cache[cx][_cy + 1];
+			frame[2][2] = cache[cx + 1][_cy + 1];
+
+			if ( _ty < cols - 1) {
+				output[tx * cols + _ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
+				+ global_conv_kernel3x3[0][1] * frame[0][1]
+				+ global_conv_kernel3x3[0][2] * frame[0][2]
+				+ global_conv_kernel3x3[1][0] * frame[1][0]
+				+ global_conv_kernel3x3[1][1] * frame[1][1]
+				+ global_conv_kernel3x3[1][2] * frame[1][2]
+				+ global_conv_kernel3x3[2][0] * frame[2][0]
+				+ global_conv_kernel3x3[2][1] * frame[2][1]
+				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
+			}
+		}
+	}
+}
+
 __global__ void k_1D_gf_3x3_vectorized16_global(unsigned char* input, unsigned char* output, int rows, int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
@@ -1747,480 +2218,6 @@ __global__ void k_1D_gf_3x3_vectorized2_constant(unsigned char* input, unsigned 
 			}
 		}
 		reinterpret_cast<uchar2*>(&output[(tx * cols + ty)])[0] = make_uchar2(vals[0] >> 4, vals[1] >> 4);
-	}
-}
-
-__global__ void k_1D_gf_3x3_load_balance16_shared(unsigned char* input, unsigned char* output, int rows, int cols)
-{
-	__shared__  unsigned char cache[34][514];
-
-	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-
-	int cy = threadIdx.x * 16 + 1;
-	int cx = threadIdx.y + 1;
-
-	cache[cx][cy] = input[tx * cols + ty];
-	cache[cx][cy + 1] = input[tx * cols + ty + 1];
-	cache[cx][cy + 2] = input[tx * cols + ty + 2];
-	cache[cx][cy + 3] = input[tx * cols + ty + 3];
-	cache[cx][cy + 4] = input[tx * cols + ty + 4];
-	cache[cx][cy + 5] = input[tx * cols + ty + 5];
-	cache[cx][cy + 6] = input[tx * cols + ty + 6];
-	cache[cx][cy + 7] = input[tx * cols + ty + 7];
-	cache[cx][cy + 8] = input[tx * cols + ty + 8];
-	cache[cx][cy + 9] = input[tx * cols + ty + 9];
-	cache[cx][cy + 10] = input[tx * cols + ty + 10];
-	cache[cx][cy + 11] = input[tx * cols + ty + 11];
-	cache[cx][cy + 12] = input[tx * cols + ty + 12];
-	cache[cx][cy + 13] = input[tx * cols + ty + 13];
-	cache[cx][cy + 14] = input[tx * cols + ty + 14];
-	cache[cx][cy + 15] = input[tx * cols + ty + 15];
-
-	if ((tx > 0 && tx < rows - 1) && (ty < cols - 1)) {
-		if (cx == 1) { /*top row*/
-			cache[0][cy] = input[((tx - 1) * cols + ty)];
-			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
-			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
-			cache[0][cy + 3] = input[((tx - 1) * cols + ty + 3)];
-			cache[0][cy + 4] = input[((tx - 1) * cols + ty + 4)];
-			cache[0][cy + 5] = input[((tx - 1) * cols + ty + 5)];
-			cache[0][cy + 6] = input[((tx - 1) * cols + ty + 6)];
-			cache[0][cy + 7] = input[((tx - 1) * cols + ty + 7)];
-			cache[0][cy + 8] = input[((tx - 1) * cols + ty + 8)];
-			cache[0][cy + 9] = input[((tx - 1) * cols + ty + 9)];
-			cache[0][cy + 10] = input[((tx - 1) * cols + ty + 10)];
-			cache[0][cy + 11] = input[((tx - 1) * cols + ty + 11)];
-			cache[0][cy + 12] = input[((tx - 1) * cols + ty + 12)];
-			cache[0][cy + 13] = input[((tx - 1) * cols + ty + 13)];
-			cache[0][cy + 14] = input[((tx - 1) * cols + ty + 14)];
-			cache[0][cy + 15] = input[((tx - 1) * cols + ty + 15)];
-		}
-		if (cx == 32) { /*bottom row*/
-			cache[33][cy] = input[((tx + 1) * cols + ty)];
-			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
-			cache[33][cy + 2] = input[((tx + 1) * cols + ty + 2)];
-			cache[33][cy + 3] = input[((tx + 1) * cols + ty + 3)];
-			cache[33][cy + 4] = input[((tx + 1) * cols + ty + 4)];
-			cache[33][cy + 5] = input[((tx + 1) * cols + ty + 5)];
-			cache[33][cy + 6] = input[((tx + 1) * cols + ty + 6)];
-			cache[33][cy + 7] = input[((tx + 1) * cols + ty + 7)];
-			cache[33][cy + 8] = input[((tx + 1) * cols + ty + 8)];
-			cache[33][cy + 9] = input[((tx + 1) * cols + ty + 9)];
-			cache[33][cy + 10] = input[((tx + 1) * cols + ty + 10)];
-			cache[33][cy + 11] = input[((tx + 1) * cols + ty + 11)];
-			cache[33][cy + 12] = input[((tx + 1) * cols + ty + 12)];
-			cache[33][cy + 13] = input[((tx + 1) * cols + ty + 13)];
-			cache[33][cy + 14] = input[((tx + 1) * cols + ty + 14)];
-			cache[33][cy + 15] = input[((tx + 1) * cols + ty + 15)];
-		}
-		if (cy == 1) {/*left column*/
-			cache[cx][0] = input[((tx)*cols + ty - 1)];
-		}
-		if (cy == 497) {/*right column*/
-			cache[cx][513] = input[((tx)*cols + ty + 16)];
-		}
-
-		__syncthreads();
-
-		unsigned char frame[3][3];
-
-		frame[0][0] = cache[cx - 1][cy - 1];
-		frame[0][1] = cache[cx - 1][cy];
-		frame[0][2] = cache[cx - 1][cy + 1];
-		frame[1][0] = cache[cx][cy - 1];
-		frame[1][1] = cache[cx][cy];
-		frame[1][2] = cache[cx][cy + 1];
-		frame[2][0] = cache[cx + 1][cy - 1];
-		frame[2][1] = cache[cx + 1][cy];
-		frame[2][2] = cache[cx + 1][cy + 1];
-
-		output[tx * cols + ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
-		+ global_conv_kernel3x3[0][1] * frame[0][1]
-		+ global_conv_kernel3x3[0][2] * frame[0][2]
-		+ global_conv_kernel3x3[1][0] * frame[1][0]
-		+ global_conv_kernel3x3[1][1] * frame[1][1]
-		+ global_conv_kernel3x3[1][2] * frame[1][2]
-		+ global_conv_kernel3x3[2][0] * frame[2][0]
-		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
-
-		for (int i = 1; i < 16; i++) {
-			int _ty = ty + i;
-			int _cy = cy + i;
-			shift_left(frame);
-			frame[0][2] = cache[cx - 1][_cy + 1];
-			frame[1][2] = cache[cx][_cy + 1];
-			frame[2][2] = cache[cx + 1][_cy + 1];
-
-			if (_ty < cols - 1) {
-				output[tx * cols + _ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
-				+ global_conv_kernel3x3[0][1] * frame[0][1]
-				+ global_conv_kernel3x3[0][2] * frame[0][2]
-				+ global_conv_kernel3x3[1][0] * frame[1][0]
-				+ global_conv_kernel3x3[1][1] * frame[1][1]
-				+ global_conv_kernel3x3[1][2] * frame[1][2]
-				+ global_conv_kernel3x3[2][0] * frame[2][0]
-				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
-			}
-		}
-	}
-}
-
-__global__ void k_1D_gf_3x3_load_balance12_shared(unsigned char* input, unsigned char* output, int rows, int cols)
-{
-	__shared__  unsigned char cache[34][386];
-
-	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-
-	int cy = threadIdx.x * 12 + 1;
-	int cx = threadIdx.y + 1;
-
-	cache[cx][cy] = input[tx * cols + ty];
-	cache[cx][cy + 1] = input[tx * cols + ty + 1];
-	cache[cx][cy + 2] = input[tx * cols + ty + 2];
-	cache[cx][cy + 3] = input[tx * cols + ty + 3];
-	cache[cx][cy + 4] = input[tx * cols + ty + 4];
-	cache[cx][cy + 5] = input[tx * cols + ty + 5];
-	cache[cx][cy + 6] = input[tx * cols + ty + 6];
-	cache[cx][cy + 7] = input[tx * cols + ty + 7];
-	cache[cx][cy + 8] = input[tx * cols + ty + 8];
-	cache[cx][cy + 9] = input[tx * cols + ty + 9];
-	cache[cx][cy + 10] = input[tx * cols + ty + 10];
-	cache[cx][cy + 11] = input[tx * cols + ty + 11];
-
-	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		if (cx == 1) { /*top row*/
-			cache[0][cy] = input[((tx - 1) * cols + ty)];
-			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
-			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
-			cache[0][cy + 3] = input[((tx - 1) * cols + ty + 3)];
-			cache[0][cy + 4] = input[((tx - 1) * cols + ty + 4)];
-			cache[0][cy + 5] = input[((tx - 1) * cols + ty + 5)];
-			cache[0][cy + 6] = input[((tx - 1) * cols + ty + 6)];
-			cache[0][cy + 7] = input[((tx - 1) * cols + ty + 7)];
-			cache[0][cy + 8] = input[((tx - 1) * cols + ty + 8)];
-			cache[0][cy + 9] = input[((tx - 1) * cols + ty + 9)];
-			cache[0][cy + 10] = input[((tx - 1) * cols + ty + 10)];
-			cache[0][cy + 11] = input[((tx - 1) * cols + ty + 11)];
-		}
-		if (cx == 32) { /*bottom row*/
-			cache[33][cy] = input[((tx + 1) * cols + ty)];
-			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
-			cache[33][cy + 2] = input[((tx + 1) * cols + ty + 2)];
-			cache[33][cy + 3] = input[((tx + 1) * cols + ty + 3)];
-			cache[33][cy + 4] = input[((tx + 1) * cols + ty + 4)];
-			cache[33][cy + 5] = input[((tx + 1) * cols + ty + 5)];
-			cache[33][cy + 6] = input[((tx + 1) * cols + ty + 6)];
-			cache[33][cy + 7] = input[((tx + 1) * cols + ty + 7)];
-			cache[33][cy + 8] = input[((tx + 1) * cols + ty + 8)];
-			cache[33][cy + 9] = input[((tx + 1) * cols + ty + 9)];
-			cache[33][cy + 10] = input[((tx + 1) * cols + ty + 10)];
-			cache[33][cy + 11] = input[((tx + 1) * cols + ty + 11)];
-		}
-		if (cy == 1) {/*left column*/
-			cache[cx][0] = input[((tx)*cols + ty - 1)];
-		}
-		if (cy == 373) {/*right column*/
-			cache[cx][385] = input[((tx)*cols + ty + 12)];
-		}
-
-		__syncthreads();
-
-		unsigned char frame[3][3];
-
-		frame[0][0] = cache[cx - 1][cy - 1];
-		frame[0][1] = cache[cx - 1][cy];
-		frame[0][2] = cache[cx - 1][cy + 1];
-		frame[1][0] = cache[cx][cy - 1];
-		frame[1][1] = cache[cx][cy];
-		frame[1][2] = cache[cx][cy + 1];
-		frame[2][0] = cache[cx + 1][cy - 1];
-		frame[2][1] = cache[cx + 1][cy];
-		frame[2][2] = cache[cx + 1][cy + 1];
-
-		output[tx * cols + ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
-		+ global_conv_kernel3x3[0][1] * frame[0][1]
-		+ global_conv_kernel3x3[0][2] * frame[0][2]
-		+ global_conv_kernel3x3[1][0] * frame[1][0]
-		+ global_conv_kernel3x3[1][1] * frame[1][1]
-		+ global_conv_kernel3x3[1][2] * frame[1][2]
-		+ global_conv_kernel3x3[2][0] * frame[2][0]
-		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
-
-		for (int i = 1; i < 12; i++) {
-			int _ty = ty + i;
-			int _cy = cy + i;
-			shift_left(frame);
-			frame[0][2] = cache[cx - 1][_cy + 1];
-			frame[1][2] = cache[cx][_cy + 1];
-			frame[2][2] = cache[cx + 1][_cy + 1];
-
-			if (_ty < cols - 1) {
-				output[tx * cols + _ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
-				+ global_conv_kernel3x3[0][1] * frame[0][1]
-				+ global_conv_kernel3x3[0][2] * frame[0][2]
-				+ global_conv_kernel3x3[1][0] * frame[1][0]
-				+ global_conv_kernel3x3[1][1] * frame[1][1]
-				+ global_conv_kernel3x3[1][2] * frame[1][2]
-				+ global_conv_kernel3x3[2][0] * frame[2][0]
-				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
-			}
-		}
-	}
-}
-
-__global__ void k_1D_gf_3x3_load_balance8_shared(unsigned char* input, unsigned char* output, int rows, int cols)
-{
-	__shared__  unsigned char cache[34][260];
-
-	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-
-	int cy = threadIdx.x * 8 + 1;
-	int cx = threadIdx.y + 1;
-
-	cache[cx][cy] = input[tx * cols + ty];
-	cache[cx][cy + 1] = input[tx * cols + ty + 1];
-	cache[cx][cy + 2] = input[tx * cols + ty + 2];
-	cache[cx][cy + 3] = input[tx * cols + ty + 3];
-	cache[cx][cy + 4] = input[tx * cols + ty + 4];
-	cache[cx][cy + 5] = input[tx * cols + ty + 5];
-	cache[cx][cy + 6] = input[tx * cols + ty + 6];
-	cache[cx][cy + 7] = input[tx * cols + ty + 7];
-
-	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		if (cx == 1) { /*top row*/
-			cache[0][cy] = input[((tx - 1) * cols + ty)];
-			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
-			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
-			cache[0][cy + 3] = input[((tx - 1) * cols + ty + 3)];
-			cache[0][cy + 4] = input[((tx - 1) * cols + ty + 4)];
-			cache[0][cy + 5] = input[((tx - 1) * cols + ty + 5)];
-			cache[0][cy + 6] = input[((tx - 1) * cols + ty + 6)];
-			cache[0][cy + 7] = input[((tx - 1) * cols + ty + 7)];
-		}
-		if (cx == 32) { /*bottom row*/
-			cache[33][cy] = input[((tx + 1) * cols + ty)];
-			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
-			cache[33][cy + 2] = input[((tx + 1) * cols + ty + 2)];
-			cache[33][cy + 3] = input[((tx + 1) * cols + ty + 3)];
-			cache[33][cy + 4] = input[((tx + 1) * cols + ty + 4)];
-			cache[33][cy + 5] = input[((tx + 1) * cols + ty + 5)];
-			cache[33][cy + 6] = input[((tx + 1) * cols + ty + 6)];
-			cache[33][cy + 7] = input[((tx + 1) * cols + ty + 7)];
-		}
-		if (cy == 1) {/*left column*/
-			cache[cx][0] = input[((tx)*cols + ty - 1)];
-		}
-		if (cy == 249) {/*right column*/
-			cache[cx][257] = input[((tx)*cols + ty + 8)];
-		}
-		__syncthreads();
-
-		unsigned char frame[3][3];
-
-		frame[0][0] = cache[cx - 1][cy - 1];
-		frame[0][1] = cache[cx - 1][cy];
-		frame[0][2] = cache[cx - 1][cy + 1];
-		frame[1][0] = cache[cx][cy - 1];
-		frame[1][1] = cache[cx][cy];
-		frame[1][2] = cache[cx][cy + 1];
-		frame[2][0] = cache[cx + 1][cy - 1];
-		frame[2][1] = cache[cx + 1][cy];
-		frame[2][2] = cache[cx + 1][cy + 1];
-
-		output[tx * cols + ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
-		+ global_conv_kernel3x3[0][1] * frame[0][1]
-		+ global_conv_kernel3x3[0][2] * frame[0][2]
-		+ global_conv_kernel3x3[1][0] * frame[1][0]
-		+ global_conv_kernel3x3[1][1] * frame[1][1]
-		+ global_conv_kernel3x3[1][2] * frame[1][2]
-		+ global_conv_kernel3x3[2][0] * frame[2][0]
-		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
-
-
-		for (int i = 1; i < 8; i++) {
-			int _ty = ty + i;
-			int _cy = cy + i;
-			shift_left(frame);
-			frame[0][2] = cache[cx - 1][_cy + 1];
-			frame[1][2] = cache[cx][_cy + 1];
-			frame[2][2] = cache[cx + 1][_cy + 1];
-
-			if (_ty < cols - 1) {
-				output[tx * cols + _ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
-				+ global_conv_kernel3x3[0][1] * frame[0][1]
-				+ global_conv_kernel3x3[0][2] * frame[0][2]
-				+ global_conv_kernel3x3[1][0] * frame[1][0]
-				+ global_conv_kernel3x3[1][1] * frame[1][1]
-				+ global_conv_kernel3x3[1][2] * frame[1][2]
-				+ global_conv_kernel3x3[2][0] * frame[2][0]
-				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
-			}
-		}
-	}
-}
-
-__global__ void k_1D_gf_3x3_load_balance4_shared(unsigned char* input, unsigned char* output, int rows, int cols)
-{
-	__shared__  unsigned char cache[34][130];
-
-	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-
-	int cy = threadIdx.x * 4 + 1;
-	int cx = threadIdx.y + 1;
-
-	cache[cx][cy] = input[tx * cols + ty];
-	cache[cx][cy + 1] = input[tx * cols + ty + 1];
-	cache[cx][cy + 2] = input[tx * cols + ty + 2];
-	cache[cx][cy + 3] = input[tx * cols + ty + 3];
-
-	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		if (cx == 1) { /*top row*/
-			cache[0][cy] = input[((tx - 1) * cols + ty)];
-			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
-			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
-			cache[0][cy + 3] = input[((tx - 1) * cols + ty + 3)];
-		}
-		if (cx == 32) { /*bottom row*/
-			cache[33][cy] = input[((tx + 1) * cols + ty)];
-			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
-			cache[33][cy + 2] = input[((tx + 1) * cols + ty + 2)];
-			cache[33][cy + 3] = input[((tx + 1) * cols + ty + 3)];
-		}
-		if (cy == 1) {/*left column*/
-			cache[cx][0] = input[((tx)*cols + ty - 1)];
-		}
-		if (cy == 125) {/*right column*/
-			cache[cx][129] = input[((tx)*cols + ty + 4)];
-		}
-		__syncthreads();
-
-		unsigned char frame[3][3];
-
-		frame[0][0] = cache[cx - 1][cy - 1];
-		frame[0][1] = cache[cx - 1][cy];
-		frame[0][2] = cache[cx - 1][cy + 1];
-		frame[1][0] = cache[cx][cy - 1];
-		frame[1][1] = cache[cx][cy];
-		frame[1][2] = cache[cx][cy + 1];
-		frame[2][0] = cache[cx + 1][cy - 1];
-		frame[2][1] = cache[cx + 1][cy];
-		frame[2][2] = cache[cx + 1][cy + 1];
-
-		output[tx * cols + ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
-		+ global_conv_kernel3x3[0][1] * frame[0][1]
-		+ global_conv_kernel3x3[0][2] * frame[0][2]
-		+ global_conv_kernel3x3[1][0] * frame[1][0]
-		+ global_conv_kernel3x3[1][1] * frame[1][1]
-		+ global_conv_kernel3x3[1][2] * frame[1][2]
-		+ global_conv_kernel3x3[2][0] * frame[2][0]
-		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
-
-		for (int i = 1; i < 4; i++) {
-			int _ty = ty + i;
-			int _cy = cy + i;
-			shift_left(frame);
-			frame[0][2] = cache[cx - 1][_cy + 1];
-			frame[1][2] = cache[cx][_cy + 1];
-			frame[2][2] = cache[cx + 1][_cy + 1];
-
-			if (_ty < cols - 1) {
-				output[tx * cols + _ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
-				+ global_conv_kernel3x3[0][1] * frame[0][1]
-				+ global_conv_kernel3x3[0][2] * frame[0][2]
-				+ global_conv_kernel3x3[1][0] * frame[1][0]
-				+ global_conv_kernel3x3[1][1] * frame[1][1]
-				+ global_conv_kernel3x3[1][2] * frame[1][2]
-				+ global_conv_kernel3x3[2][0] * frame[2][0]
-				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
-			}
-		}
-	}
-}
-
-__global__ void k_1D_gf_3x3_load_balance2_shared(unsigned char* input, unsigned char* output, int rows, int cols)
-{
-	__shared__  unsigned char cache[34][66];
-
-	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-
-	int cy = threadIdx.x * 2 + 1;
-	int cx = threadIdx.y + 1;
-
-	cache[cx][cy] = input[tx * cols + ty];
-	cache[cx][cy + 1] = input[tx * cols + ty + 1];
-
-	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		if (cx == 1) { /*top row*/
-			cache[0][cy] = input[((tx - 1) * cols + ty)];
-			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
-		}
-		if (cx == 32) { /*bottom row*/
-			cache[33][cy] = input[((tx + 1) * cols + ty)];
-			cache[33][cy + 1] = input[((tx + 1) * cols + ty + 1)];
-		}
-		if (cy == 1) {/*left column*/
-			cache[cx][0] = input[((tx)*cols + ty - 1)];
-		}
-		if (cy == 63) {/*right column*/
-			cache[cx][65] = input[((tx)*cols + ty + 2)];
-		}
-		__syncthreads();
-
-		unsigned char frame[3][3];
-
-		frame[0][0] = cache[cx - 1][cy - 1];
-		frame[0][1] = cache[cx - 1][cy];
-		frame[0][2] = cache[cx - 1][cy + 1];
-		frame[1][0] = cache[cx][cy - 1];
-		frame[1][1] = cache[cx][cy];
-		frame[1][2] = cache[cx][cy + 1];
-		frame[2][0] = cache[cx + 1][cy - 1];
-		frame[2][1] = cache[cx + 1][cy];
-		frame[2][2] = cache[cx + 1][cy + 1];
-
-		output[tx * cols + ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
-		+ global_conv_kernel3x3[0][1] * frame[0][1]
-		+ global_conv_kernel3x3[0][2] * frame[0][2]
-		+ global_conv_kernel3x3[1][0] * frame[1][0]
-		+ global_conv_kernel3x3[1][1] * frame[1][1]
-		+ global_conv_kernel3x3[1][2] * frame[1][2]
-		+ global_conv_kernel3x3[2][0] * frame[2][0]
-		+ global_conv_kernel3x3[2][1] * frame[2][1]
-		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
-
-		for (int i = 1; i < 2; i++) {
-			int _ty = ty + i;
-			int _cy = cy + i;
-			shift_left(frame);
-			frame[0][2] = cache[cx - 1][_cy + 1];
-			frame[1][2] = cache[cx][_cy + 1];
-			frame[2][2] = cache[cx + 1][_cy + 1];
-
-			if ( _ty < cols - 1) {
-				output[tx * cols + _ty] = (global_conv_kernel3x3[0][0] * frame[0][0]
-				+ global_conv_kernel3x3[0][1] * frame[0][1]
-				+ global_conv_kernel3x3[0][2] * frame[0][2]
-				+ global_conv_kernel3x3[1][0] * frame[1][0]
-				+ global_conv_kernel3x3[1][1] * frame[1][1]
-				+ global_conv_kernel3x3[1][2] * frame[1][2]
-				+ global_conv_kernel3x3[2][0] * frame[2][0]
-				+ global_conv_kernel3x3[2][1] * frame[2][1]
-				+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
-			}
-		}
 	}
 }
 
