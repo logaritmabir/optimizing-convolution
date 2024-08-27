@@ -2232,32 +2232,32 @@ __global__ void k_1D_gf_3x3_vectorized16_shared(unsigned char* input, unsigned c
 	int cx = threadIdx.y + 1;
 
 	uchar4 u4;
-	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty])[0];
-
-	cache[cx][cy] = u4.x;
-	cache[cx][cy + 1] = u4.y;
-	cache[cx][cy + 2] = u4.z;
-	cache[cx][cy + 3] = u4.w;
-
-	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 4])[0];
-	cache[cx][cy + 4] = u4.x;
-	cache[cx][cy + 5] = u4.y;
-	cache[cx][cy + 6] = u4.z;
-	cache[cx][cy + 7] = u4.w;
-
-	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 8])[0];
-	cache[cx][cy + 8] = u4.x;
-	cache[cx][cy + 9] = u4.y;
-	cache[cx][cy + 10] = u4.z;
-	cache[cx][cy + 11] = u4.w;
-
-	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 12])[0];
-	cache[cx][cy + 12] = u4.x;
-	cache[cx][cy + 13] = u4.y;
-	cache[cx][cy + 14] = u4.z;
-	cache[cx][cy + 15] = u4.w;
 
 	if ((tx > 0 && tx < rows - 1) && (ty < cols - 1)) {
+		u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty])[0];
+		cache[cx][cy] = u4.x;
+		cache[cx][cy + 1] = u4.y;
+		cache[cx][cy + 2] = u4.z;
+		cache[cx][cy + 3] = u4.w;
+
+		u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 4])[0];
+		cache[cx][cy + 4] = u4.x;
+		cache[cx][cy + 5] = u4.y;
+		cache[cx][cy + 6] = u4.z;
+		cache[cx][cy + 7] = u4.w;
+
+		u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 8])[0];
+		cache[cx][cy + 8] = u4.x;
+		cache[cx][cy + 9] = u4.y;
+		cache[cx][cy + 10] = u4.z;
+		cache[cx][cy + 11] = u4.w;
+
+		u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 12])[0];
+		cache[cx][cy + 12] = u4.x;
+		cache[cx][cy + 13] = u4.y;
+		cache[cx][cy + 14] = u4.z;
+		cache[cx][cy + 15] = u4.w;
+
 		if (cx == 1) { /*top row*/
 			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1) * cols + ty])[0];
 			cache[0][cy] = u4.x;
@@ -2374,25 +2374,25 @@ __global__ void k_1D_gf_3x3_vectorized12_shared(unsigned char* input, unsigned c
 	int cx = threadIdx.y + 1;
 	
 	uchar4 u4;
-	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty])[0];
-	cache[cx][cy] = u4.x;
-	cache[cx][cy + 1] = u4.y;
-	cache[cx][cy + 2] = u4.z;
-	cache[cx][cy + 3] = u4.w;
-
-	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 4])[0];
-	cache[cx][cy + 4] = u4.x;
-	cache[cx][cy + 5] = u4.y;
-	cache[cx][cy + 6] = u4.z;
-	cache[cx][cy + 7] = u4.w;
-
-	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 8])[0];
-	cache[cx][cy + 8] = u4.x;
-	cache[cx][cy + 9] = u4.y;
-	cache[cx][cy + 10] = u4.z;
-	cache[cx][cy + 11] = u4.w;
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty])[0];
+		cache[cx][cy] = u4.x;
+		cache[cx][cy + 1] = u4.y;
+		cache[cx][cy + 2] = u4.z;
+		cache[cx][cy + 3] = u4.w;
+
+		u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 4])[0];
+		cache[cx][cy + 4] = u4.x;
+		cache[cx][cy + 5] = u4.y;
+		cache[cx][cy + 6] = u4.z;
+		cache[cx][cy + 7] = u4.w;
+
+		u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 8])[0];
+		cache[cx][cy + 8] = u4.x;
+		cache[cx][cy + 9] = u4.y;
+		cache[cx][cy + 10] = u4.z;
+		cache[cx][cy + 11] = u4.w;
 		if (cx == 1) { /*top row*/
 			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1 ) * cols + ty])[0];
 			cache[0][cy] = u4.x;
@@ -2497,20 +2497,18 @@ __global__ void k_1D_gf_3x3_vectorized8_shared(unsigned char* input, unsigned ch
 
 	uchar4 u4;
 
-	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty])[0];
-
-	cache[cx][cy] = u4.x;
-	cache[cx][cy + 1] = u4.y;
-	cache[cx][cy + 2] = u4.z;
-	cache[cx][cy + 3] = u4.w;
-
-	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 4])[0];
-	cache[cx][cy + 4] = u4.x;
-	cache[cx][cy + 5] = u4.y;
-	cache[cx][cy + 6] = u4.z;
-	cache[cx][cy + 7] = u4.w;
-
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty])[0];
+		cache[cx][cy] = u4.x;
+		cache[cx][cy + 1] = u4.y;
+		cache[cx][cy + 2] = u4.z;
+		cache[cx][cy + 3] = u4.w;
+
+		u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty + 4])[0];
+		cache[cx][cy + 4] = u4.x;
+		cache[cx][cy + 5] = u4.y;
+		cache[cx][cy + 6] = u4.z;
+		cache[cx][cy + 7] = u4.w;
 		if (cx == 1) { /*top row*/
 			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1) * cols + ty])[0];
 			cache[0][cy] = u4.x;
@@ -2602,13 +2600,12 @@ __global__ void k_1D_gf_3x3_vectorized4_shared(unsigned char* input, unsigned ch
 
 	uchar4 u4;
 
-	u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty])[0];
-	cache[cx][cy] = u4.x;
-	cache[cx][cy + 1] = u4.y;
-	cache[cx][cy + 2] = u4.z;
-	cache[cx][cy + 3] = u4.w;
-
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		u4 = reinterpret_cast<uchar4*>(&input[tx * cols + ty])[0];
+		cache[cx][cy] = u4.x;
+		cache[cx][cy + 1] = u4.y;
+		cache[cx][cy + 2] = u4.z;
+		cache[cx][cy + 3] = u4.w;
 		if (cx == 1) { /*top row*/
 			u4 = reinterpret_cast<uchar4*>(&input[(tx - 1) * cols + ty])[0];
 			cache[0][cy] = u4.x;
@@ -2689,12 +2686,12 @@ __global__ void k_1D_gf_3x3_vectorized2_shared(unsigned char* input, unsigned ch
 	int cx = threadIdx.y + 1;
 
 	uchar2 u2;
-	u2 = reinterpret_cast<uchar2*>(&input[tx * cols + ty])[0];
-
-	cache[cx][cy] = u2.x;
-	cache[cx][cy + 1] = u2.y;
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		u2 = reinterpret_cast<uchar2*>(&input[tx * cols + ty])[0];
+		
+		cache[cx][cy] = u2.x;
+		cache[cx][cy + 1] = u2.y;
 		if (cx == 1) { /*top row*/
 			u2 = reinterpret_cast<uchar2*>(&input[(tx - 1) * cols + ty])[0];
 			cache[0][cy] = u2.x;

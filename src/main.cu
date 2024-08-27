@@ -89,6 +89,8 @@ int main(int argc, char** argv)
         gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized4_shared);
         gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized8_shared);
         gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized12_shared);
+        cv::imshow("demo", output1.at(0));
+        cv::waitKey();
         gf_1d_gpu(&gray_input_images.at(0), &output1.at(i), GAUSSIAN_3x3_vectorized16_shared);
     }
 
