@@ -57,12 +57,4 @@ enum GAUSSIAN {
 	GAUSSIAN_3x3_vectorized2_shared,
 };
 
-float gf_1d_single_thread(cv::Mat input_img, cv::Mat* output_img);
-float gf_1d_cppthreads(cv::Mat input_img, cv::Mat* output_img);
-float gf_1d_openmp(cv::Mat input_img, cv::Mat* output_img);
-
-float gf_3d_single_thread(cv::Mat input_img, cv::Mat* output_img);
-float gf_3d_cppthreads(cv::Mat input_img, cv::Mat* output_img);
-float gf_3d_openmp(cv::Mat input_img, cv::Mat* output_img);
-
 void gf_1d_gpu(cv::Mat* input_img, cv::Mat* output_img, GAUSSIAN ver);
