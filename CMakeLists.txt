@@ -5,9 +5,12 @@ set(CMAKE_CUDA_ARCHITECTURES 75)
 
 enable_language(CUDA)
 
-find_package(OpenCV REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
+find_package(CUDA REQUIRED)
 
+set(OpenCV_DIR C:/Users/ben/Desktop/opencv/build)
+find_package(OpenCV REQUIRED)
+
+include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 set(CUDA_FILES

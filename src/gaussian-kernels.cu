@@ -1011,7 +1011,7 @@ __global__ void k_1D_gf_3x3_load_balance12_shared(unsigned char* input, unsigned
 		cache[cx][cy + 9] = input[tx * cols + ty + 9];
 		cache[cx][cy + 10] = input[tx * cols + ty + 10];
 		cache[cx][cy + 11] = input[tx * cols + ty + 11];
-		if (cx == 1) { /*top row*/
+		if (cx == 1) {
 			cache[0][cy] = input[((tx - 1) * cols + ty)];
 			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
 			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
@@ -1112,7 +1112,7 @@ __global__ void k_1D_gf_3x3_load_balance8_shared(unsigned char* input, unsigned 
 		cache[cx][cy + 5] = input[tx * cols + ty + 5];
 		cache[cx][cy + 6] = input[tx * cols + ty + 6];
 		cache[cx][cy + 7] = input[tx * cols + ty + 7];
-		if (cx == 1) { /*top row*/
+		if (cx == 1) { 
 			cache[0][cy] = input[((tx - 1) * cols + ty)];
 			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
 			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
@@ -1202,7 +1202,7 @@ __global__ void k_1D_gf_3x3_load_balance4_shared(unsigned char* input, unsigned 
 	cache[cx][cy + 2] = input[tx * cols + ty + 2];
 	cache[cx][cy + 3] = input[tx * cols + ty + 3];
 		
-		if (cx == 1) { /*top row*/
+		if (cx == 1) {
 			cache[0][cy] = input[((tx - 1) * cols + ty)];
 			cache[0][cy + 1] = input[((tx - 1) * cols + ty + 1)];
 			cache[0][cy + 2] = input[((tx - 1) * cols + ty + 2)];
@@ -1347,24 +1347,19 @@ __global__ void k_1D_gf_3x3_vectorized16_global(unsigned char* input, unsigned c
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	uchar3 top, bot, mid;
 	int vals[16] = { 0 };
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty  < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
 			+ global_conv_kernel3x3[0][1] * frame[0][1]
@@ -1407,24 +1402,19 @@ __global__ void k_1D_gf_3x3_vectorized12_global(unsigned char* input, unsigned c
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	uchar3 top, bot, mid;
 	int vals[12] = { 0 };
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
 			+ global_conv_kernel3x3[0][1] * frame[0][1]
@@ -1465,24 +1455,19 @@ __global__ void k_1D_gf_3x3_vectorized8_global(unsigned char* input, unsigned ch
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	uchar3 top, bot, mid;
 	int vals[8] = { 0 };
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
 			+ global_conv_kernel3x3[0][1] * frame[0][1]
@@ -1523,25 +1508,20 @@ __global__ void k_1D_gf_3x3_vectorized4_global(unsigned char* input, unsigned ch
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	uchar3 top, bot, mid;
 	int vals[4] = { 0 };
 
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
 			+ global_conv_kernel3x3[0][1] * frame[0][1]
@@ -1581,26 +1561,20 @@ __global__ void k_1D_gf_3x3_vectorized2_global(unsigned char* input, unsigned ch
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	uchar3 top, bot, mid;
 	int vals[2] = { 0 };
 
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = (global_conv_kernel3x3[0][0] * frame[0][0]
 			+ global_conv_kernel3x3[0][1] * frame[0][1]
@@ -1640,24 +1614,19 @@ __global__ void k_1D_gf_3x3_vectorized16_local(unsigned char* input, unsigned ch
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-	uchar3 top, bot, mid;
 	int vals[16] = { 0 };
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = (conv_kernel[0][0] * frame[0][0]
 			+ conv_kernel[0][1] * frame[0][1]
@@ -1695,30 +1664,24 @@ __global__ void k_1D_gf_3x3_vectorized16_local(unsigned char* input, unsigned ch
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized12_local(unsigned char* input, unsigned char* output, int rows, int cols)
-{
+__global__ void k_1D_gf_3x3_vectorized12_local(unsigned char* input, unsigned char* output, int rows, int cols){
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-	uchar3 top, bot, mid;
 	int vals[12] = { 0 };
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = (conv_kernel[0][0] * frame[0][0]
 			+ conv_kernel[0][1] * frame[0][1]
@@ -1760,24 +1723,19 @@ __global__ void k_1D_gf_3x3_vectorized8_local(unsigned char* input, unsigned cha
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-	uchar3 top, bot, mid;
 	int vals[8] = { 0 };
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = (conv_kernel[0][0] * frame[0][0]
 			+ conv_kernel[0][1] * frame[0][1]
@@ -1819,25 +1777,20 @@ __global__ void k_1D_gf_3x3_vectorized4_local(unsigned char* input, unsigned cha
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-	uchar3 top, bot, mid;
 	int vals[4] = { 0 };
 
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = (conv_kernel[0][0] * frame[0][0]
 			+ conv_kernel[0][1] * frame[0][1]
@@ -1878,26 +1831,20 @@ __global__ void k_1D_gf_3x3_vectorized2_local(unsigned char* input, unsigned cha
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	unsigned char conv_kernel[3][3] = { {1, 2, 1}, {2, 4, 2}, {1, 2, 1} };
-
-	uchar3 top, bot, mid;
 	int vals[2] = { 0 };
 
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = (conv_kernel[0][0] * frame[0][0]
 			+ conv_kernel[0][1] * frame[0][1]
@@ -1937,24 +1884,19 @@ __global__ void k_1D_gf_3x3_vectorized16_constant(unsigned char* input, unsigned
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	uchar3 top, bot, mid;
 	int vals[16] = { 0 };
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = (const_conv_kernel3x3[0][0] * frame[0][0]
 			+ const_conv_kernel3x3[0][1] * frame[0][1]
@@ -1997,24 +1939,19 @@ __global__ void k_1D_gf_3x3_vectorized12_constant(unsigned char* input, unsigned
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	uchar3 top, bot, mid;
 	int vals[12] = { 0 };
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = const_conv_kernel3x3[0][0] * frame[0][0]
 		+ const_conv_kernel3x3[0][1] * frame[0][1]
@@ -2055,24 +1992,19 @@ __global__ void k_1D_gf_3x3_vectorized8_constant(unsigned char* input, unsigned 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	uchar3 top, bot, mid;
 	int vals[8] = { 0 };
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = const_conv_kernel3x3[0][0] * frame[0][0]
 		+ const_conv_kernel3x3[0][1] * frame[0][1]
@@ -2113,24 +2045,19 @@ __global__ void k_1D_gf_3x3_vectorized4_constant(unsigned char* input, unsigned 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	uchar3 top, bot, mid;
 	int vals[4] = { 0 };
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = const_conv_kernel3x3[0][0] * frame[0][0]
 		+ const_conv_kernel3x3[0][1] * frame[0][1]
@@ -2170,24 +2097,19 @@ __global__ void k_1D_gf_3x3_vectorized2_constant(unsigned char* input, unsigned 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	uchar3 top, bot, mid;
 	int vals[2] = { 0 };
 	unsigned char frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		top = reinterpret_cast<uchar3*>(&input[((tx - 1) * cols + ty - 1)])[0];
-		mid = reinterpret_cast<uchar3*>(&input[(tx * cols + ty - 1)])[0];
-		bot = reinterpret_cast<uchar3*>(&input[((tx + 1) * cols + ty - 1)])[0];
-
-		frame[0][0] = top.x;
-		frame[0][1] = top.y;
-		frame[0][2] = top.z;
-		frame[1][0] = mid.x;
-		frame[1][1] = mid.y;
-		frame[1][2] = mid.z;
-		frame[2][0] = bot.x;
-		frame[2][1] = bot.y;
-		frame[2][2] = bot.z;
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
 		vals[0] = const_conv_kernel3x3[0][0] * frame[0][0]
 		+ const_conv_kernel3x3[0][1] * frame[0][1]
