@@ -22,7 +22,7 @@ set(CUDA_HEADERS
     include/gaussian.cuh
 )
 
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3 -arch=sm_75 --expt-relaxed-constexpr")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3 -arch=sm_75 --expt-relaxed-constexpr -G -lineinfo")
 
 add_executable(${PROJECT_NAME} ${CUDA_FILES} ${CUDA_HEADERS} src/main.cu)
 
