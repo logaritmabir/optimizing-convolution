@@ -58,4 +58,3 @@ enum GAUSSIAN {
 };
 
 void gf_1d_gpu(cv::Mat* input_img, cv::Mat* output_img, GAUSSIAN ver);
-void gf_1d_gpu_f32(cv::Mat* input_img, cv::Mat* output_img, GAUSSIAN ver);
