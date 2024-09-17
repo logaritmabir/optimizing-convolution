@@ -15,7 +15,7 @@ __device__ unsigned char global_conv_kernel3x3[3][3] = {{1, 2, 1},
 														{2, 4, 2}, 
 														{1, 2, 1} };
 
-__global__ void k_1D_gf_3x3_global(unsigned char* input, unsigned char* output, int rows, int cols){
+__global__ void k_1D_gf_3x3_global(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols){
 	int ty = blockIdx.x * blockDim.x + threadIdx.x;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
@@ -31,27 +31,7 @@ __global__ void k_1D_gf_3x3_global(unsigned char* input, unsigned char* output, 
 	}
 }
 
-__global__ void k_1D_gf_3x3_local(unsigned char* input, unsigned char* output, int rows, int cols)
-{
-	const int ty = blockIdx.x * blockDim.x + threadIdx.x;
-	const int tx = blockIdx.y * blockDim.y + threadIdx.y;
-
-	unsigned char conv_kernel3x3[3][3] = { {1, 2, 1},{2, 4, 2},{1, 2, 1} };
-
-	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		output[tx * cols + ty] = (conv_kernel3x3[0][0] * input[(tx - 1) * cols + ty - 1]
-		 + conv_kernel3x3[0][1] * input[(tx - 1) * cols + ty]
-		 + conv_kernel3x3[0][2] * input[(tx - 1) * cols + ty + 1]
-		 + conv_kernel3x3[1][0] * input[tx * cols + ty - 1]
-		 + conv_kernel3x3[1][1] * input[tx * cols + ty]
-		 + conv_kernel3x3[1][2] * input[tx * cols + ty + 1]
-		 + conv_kernel3x3[2][0] * input[(tx + 1) * cols + ty - 1]
-		 + conv_kernel3x3[2][1] * input[(tx + 1) * cols + ty]
-		 + conv_kernel3x3[2][2] * input[(tx + 1) * cols + ty + 1]) >> 4;
-	}
-}
-
-__global__ void k_1D_gf_3x3_constant(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_constant(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = blockIdx.x * blockDim.x + threadIdx.x;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -69,7 +49,7 @@ __global__ void k_1D_gf_3x3_constant(unsigned char* input, unsigned char* output
 	}
 }
 
-__global__ void k_1D_gf_3x3_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_shared(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	__shared__  unsigned char cache[34][34];
 
@@ -110,7 +90,7 @@ __global__ void k_1D_gf_3x3_shared(unsigned char* input, unsigned char* output, 
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance16_global(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance16_global(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -138,6 +118,7 @@ __global__ void k_1D_gf_3x3_load_balance16_global(unsigned char* input, unsigned
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 16; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -160,7 +141,7 @@ __global__ void k_1D_gf_3x3_load_balance16_global(unsigned char* input, unsigned
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance12_global(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance12_global(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -188,7 +169,7 @@ __global__ void k_1D_gf_3x3_load_balance12_global(unsigned char* input, unsigned
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
-
+		#pragma unroll
 		for (int i = 1; i < 12; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -211,7 +192,7 @@ __global__ void k_1D_gf_3x3_load_balance12_global(unsigned char* input, unsigned
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance8_global(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance8_global(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -239,6 +220,7 @@ __global__ void k_1D_gf_3x3_load_balance8_global(unsigned char* input, unsigned 
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 8; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -261,7 +243,7 @@ __global__ void k_1D_gf_3x3_load_balance8_global(unsigned char* input, unsigned 
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance4_global(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance4_global(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -288,6 +270,7 @@ __global__ void k_1D_gf_3x3_load_balance4_global(unsigned char* input, unsigned 
 			+ global_conv_kernel3x3[2][1] * frame[2][1]
 			+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 4; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -310,7 +293,7 @@ __global__ void k_1D_gf_3x3_load_balance4_global(unsigned char* input, unsigned 
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance2_global(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance2_global(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -338,6 +321,7 @@ __global__ void k_1D_gf_3x3_load_balance2_global(unsigned char* input, unsigned 
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 2; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -360,7 +344,7 @@ __global__ void k_1D_gf_3x3_load_balance2_global(unsigned char* input, unsigned 
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance16_constant(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance16_constant(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -388,7 +372,7 @@ __global__ void k_1D_gf_3x3_load_balance16_constant(unsigned char* input, unsign
 			+ const_conv_kernel3x3[2][1] * frame[2][1]
 			+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
-
+		#pragma unroll
 		for (int i = 1; i < 16; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -411,7 +395,7 @@ __global__ void k_1D_gf_3x3_load_balance16_constant(unsigned char* input, unsign
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance12_constant(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance12_constant(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -439,7 +423,7 @@ __global__ void k_1D_gf_3x3_load_balance12_constant(unsigned char* input, unsign
 			+ const_conv_kernel3x3[2][1] * frame[2][1]
 			+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
-
+		#pragma unroll
 		for (int i = 1; i < 12; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -462,7 +446,7 @@ __global__ void k_1D_gf_3x3_load_balance12_constant(unsigned char* input, unsign
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance8_constant(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance8_constant(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -489,6 +473,7 @@ __global__ void k_1D_gf_3x3_load_balance8_constant(unsigned char* input, unsigne
 			+ const_conv_kernel3x3[2][1] * frame[2][1]
 			+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 8; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -511,7 +496,7 @@ __global__ void k_1D_gf_3x3_load_balance8_constant(unsigned char* input, unsigne
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance4_constant(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance4_constant(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -539,6 +524,7 @@ __global__ void k_1D_gf_3x3_load_balance4_constant(unsigned char* input, unsigne
 			+ const_conv_kernel3x3[2][1] * frame[2][1]
 			+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 4; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -561,7 +547,7 @@ __global__ void k_1D_gf_3x3_load_balance4_constant(unsigned char* input, unsigne
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance2_constant(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance2_constant(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -589,6 +575,7 @@ __global__ void k_1D_gf_3x3_load_balance2_constant(unsigned char* input, unsigne
 			+ const_conv_kernel3x3[2][1] * frame[2][1]
 			+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 2; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -611,7 +598,7 @@ __global__ void k_1D_gf_3x3_load_balance2_constant(unsigned char* input, unsigne
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance16_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance16_shared(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	__shared__  unsigned char cache[34][514];
 
@@ -705,6 +692,7 @@ __global__ void k_1D_gf_3x3_load_balance16_shared(unsigned char* input, unsigned
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 16; i++) {
 			int _ty = ty + i;
 			int _cy = cy + i;
@@ -728,7 +716,7 @@ __global__ void k_1D_gf_3x3_load_balance16_shared(unsigned char* input, unsigned
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance12_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance12_shared(const unsigned char* __restrict__ input, unsigned char *__restrict__ output, const int rows, const int cols)
 {
 	__shared__  unsigned char cache[34][386];
 
@@ -810,6 +798,7 @@ __global__ void k_1D_gf_3x3_load_balance12_shared(unsigned char* input, unsigned
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 12; i++) {
 			int _ty = ty + i;
 			int _cy = cy + i;
@@ -833,7 +822,7 @@ __global__ void k_1D_gf_3x3_load_balance12_shared(unsigned char* input, unsigned
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance8_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance8_shared(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	__shared__  unsigned char cache[34][260];
 
@@ -902,7 +891,7 @@ __global__ void k_1D_gf_3x3_load_balance8_shared(unsigned char* input, unsigned 
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
-
+		#pragma unroll
 		for (int i = 1; i < 8; i++) {
 			int _ty = ty + i;
 			int _cy = cy + i;
@@ -926,7 +915,7 @@ __global__ void k_1D_gf_3x3_load_balance8_shared(unsigned char* input, unsigned 
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance4_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance4_shared(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	__shared__  unsigned char cache[34][130];
 
@@ -984,6 +973,7 @@ __global__ void k_1D_gf_3x3_load_balance4_shared(unsigned char* input, unsigned 
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 4; i++) {
 			int _ty = ty + i;
 			int _cy = cy + i;
@@ -1007,7 +997,7 @@ __global__ void k_1D_gf_3x3_load_balance4_shared(unsigned char* input, unsigned 
 	}
 }
 
-__global__ void k_1D_gf_3x3_load_balance2_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_load_balance2_shared(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	__shared__  unsigned char cache[34][66];
 
@@ -1059,6 +1049,7 @@ __global__ void k_1D_gf_3x3_load_balance2_shared(unsigned char* input, unsigned 
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 2; i++) {
 			int _ty = ty + i;
 			int _cy = cy + i;
@@ -1082,7 +1073,7 @@ __global__ void k_1D_gf_3x3_load_balance2_shared(unsigned char* input, unsigned 
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized16_global(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized16_global(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1111,6 +1102,7 @@ __global__ void k_1D_gf_3x3_vectorized16_global(unsigned char* input, unsigned c
 			+ global_conv_kernel3x3[2][1] * frame[2][1]
 			+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 16; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -1137,7 +1129,7 @@ __global__ void k_1D_gf_3x3_vectorized16_global(unsigned char* input, unsigned c
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized12_global(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized12_global(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1166,6 +1158,7 @@ __global__ void k_1D_gf_3x3_vectorized12_global(unsigned char* input, unsigned c
 			+ global_conv_kernel3x3[2][1] * frame[2][1]
 			+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 12; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -1187,10 +1180,10 @@ __global__ void k_1D_gf_3x3_vectorized12_global(unsigned char* input, unsigned c
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(0, 0, 0, 0);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8], vals[9], vals[10], vals[11]);
 	}
 }
-__global__ void k_1D_gf_3x3_vectorized8_global(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized8_global(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1219,6 +1212,7 @@ __global__ void k_1D_gf_3x3_vectorized8_global(unsigned char* input, unsigned ch
 			+ global_conv_kernel3x3[2][1] * frame[2][1]
 			+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 8; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -1243,7 +1237,7 @@ __global__ void k_1D_gf_3x3_vectorized8_global(unsigned char* input, unsigned ch
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized4_global(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized4_global(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1273,6 +1267,7 @@ __global__ void k_1D_gf_3x3_vectorized4_global(unsigned char* input, unsigned ch
 			+ global_conv_kernel3x3[2][1] * frame[2][1]
 			+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4; 
 
+		#pragma unroll
 		for (int i = 1; i < 4; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -1296,7 +1291,7 @@ __global__ void k_1D_gf_3x3_vectorized4_global(unsigned char* input, unsigned ch
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized2_global(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized2_global(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1326,6 +1321,7 @@ __global__ void k_1D_gf_3x3_vectorized2_global(unsigned char* input, unsigned ch
 			+ global_conv_kernel3x3[2][1] * frame[2][1]
 			+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 2; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -1349,7 +1345,7 @@ __global__ void k_1D_gf_3x3_vectorized2_global(unsigned char* input, unsigned ch
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized16_constant(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized16_constant(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1378,6 +1374,7 @@ __global__ void k_1D_gf_3x3_vectorized16_constant(unsigned char* input, unsigned
 			+ const_conv_kernel3x3[2][1] * frame[2][1]
 			+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 16; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -1404,7 +1401,7 @@ __global__ void k_1D_gf_3x3_vectorized16_constant(unsigned char* input, unsigned
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized12_constant(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized12_constant(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1423,7 +1420,7 @@ __global__ void k_1D_gf_3x3_vectorized12_constant(unsigned char* input, unsigned
 		frame[2][1] = input[(tx + 1) * cols + ty];
 		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
-		vals[0] = const_conv_kernel3x3[0][0] * frame[0][0]
+		vals[0] = (const_conv_kernel3x3[0][0] * frame[0][0]
 		+ const_conv_kernel3x3[0][1] * frame[0][1]
 		+ const_conv_kernel3x3[0][2] * frame[0][2]
 		+ const_conv_kernel3x3[1][0] * frame[1][0]
@@ -1431,8 +1428,9 @@ __global__ void k_1D_gf_3x3_vectorized12_constant(unsigned char* input, unsigned
 		+ const_conv_kernel3x3[1][2] * frame[1][2]
 		+ const_conv_kernel3x3[2][0] * frame[2][0]
 		+ const_conv_kernel3x3[2][1] * frame[2][1]
-		+ const_conv_kernel3x3[2][2] * frame[2][2];
+		+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 12; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -1441,7 +1439,7 @@ __global__ void k_1D_gf_3x3_vectorized12_constant(unsigned char* input, unsigned
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = const_conv_kernel3x3[0][0] * frame[0][0]
+				vals[i] = (const_conv_kernel3x3[0][0] * frame[0][0]
 				+ const_conv_kernel3x3[0][1] * frame[0][1]
 				+ const_conv_kernel3x3[0][2] * frame[0][2]
 				+ const_conv_kernel3x3[1][0] * frame[1][0]
@@ -1449,15 +1447,15 @@ __global__ void k_1D_gf_3x3_vectorized12_constant(unsigned char* input, unsigned
 				+ const_conv_kernel3x3[1][2] * frame[1][2]
 				+ const_conv_kernel3x3[2][0] * frame[2][0]
 				+ const_conv_kernel3x3[2][1] * frame[2][1]
-				+ const_conv_kernel3x3[2][2] * frame[2][2];
+				+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8] >> 4, vals[9] >> 4, vals[10] >> 4, vals[11] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8], vals[9], vals[10], vals[11]);
 	}
 }
-__global__ void k_1D_gf_3x3_vectorized8_constant(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized8_constant(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1476,7 +1474,7 @@ __global__ void k_1D_gf_3x3_vectorized8_constant(unsigned char* input, unsigned 
 		frame[2][1] = input[(tx + 1) * cols + ty];
 		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
-		vals[0] = const_conv_kernel3x3[0][0] * frame[0][0]
+		vals[0] = (const_conv_kernel3x3[0][0] * frame[0][0]
 		+ const_conv_kernel3x3[0][1] * frame[0][1]
 		+ const_conv_kernel3x3[0][2] * frame[0][2]
 		+ const_conv_kernel3x3[1][0] * frame[1][0]
@@ -1484,8 +1482,9 @@ __global__ void k_1D_gf_3x3_vectorized8_constant(unsigned char* input, unsigned 
 		+ const_conv_kernel3x3[1][2] * frame[1][2]
 		+ const_conv_kernel3x3[2][0] * frame[2][0]
 		+ const_conv_kernel3x3[2][1] * frame[2][1]
-		+ const_conv_kernel3x3[2][2] * frame[2][2];
+		+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 8; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -1494,7 +1493,7 @@ __global__ void k_1D_gf_3x3_vectorized8_constant(unsigned char* input, unsigned 
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = const_conv_kernel3x3[0][0] * frame[0][0]
+				vals[i] = (const_conv_kernel3x3[0][0] * frame[0][0]
 				+ const_conv_kernel3x3[0][1] * frame[0][1]
 				+ const_conv_kernel3x3[0][2] * frame[0][2]
 				+ const_conv_kernel3x3[1][0] * frame[1][0]
@@ -1502,15 +1501,15 @@ __global__ void k_1D_gf_3x3_vectorized8_constant(unsigned char* input, unsigned 
 				+ const_conv_kernel3x3[1][2] * frame[1][2]
 				+ const_conv_kernel3x3[2][0] * frame[2][0]
 				+ const_conv_kernel3x3[2][1] * frame[2][1]
-				+ const_conv_kernel3x3[2][2] * frame[2][2];
+				+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4] >> 4, vals[5] >> 4, vals[6] >> 4, vals[7] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 4)])[0] = make_uchar4(vals[4], vals[5], vals[6], vals[7]);
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized4_constant(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized4_constant(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1539,6 +1538,7 @@ __global__ void k_1D_gf_3x3_vectorized4_constant(unsigned char* input, unsigned 
 		+ const_conv_kernel3x3[2][1] * frame[2][1]
 		+ const_conv_kernel3x3[2][2] * frame[2][2];
 
+		#pragma unroll
 		for (int i = 1; i < 4; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -1547,7 +1547,7 @@ __global__ void k_1D_gf_3x3_vectorized4_constant(unsigned char* input, unsigned 
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = const_conv_kernel3x3[0][0] * frame[0][0]
+				vals[i] = (const_conv_kernel3x3[0][0] * frame[0][0]
 				+ const_conv_kernel3x3[0][1] * frame[0][1]
 				+ const_conv_kernel3x3[0][2] * frame[0][2]
 				+ const_conv_kernel3x3[1][0] * frame[1][0]
@@ -1555,14 +1555,14 @@ __global__ void k_1D_gf_3x3_vectorized4_constant(unsigned char* input, unsigned 
 				+ const_conv_kernel3x3[1][2] * frame[1][2]
 				+ const_conv_kernel3x3[2][0] * frame[2][0]
 				+ const_conv_kernel3x3[2][1] * frame[2][1]
-				+ const_conv_kernel3x3[2][2] * frame[2][2];
+				+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0] >> 4, vals[1] >> 4, vals[2] >> 4, vals[3] >> 4);
+		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized2_constant(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized2_constant(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1581,7 +1581,7 @@ __global__ void k_1D_gf_3x3_vectorized2_constant(unsigned char* input, unsigned 
 		frame[2][1] = input[(tx + 1) * cols + ty];
 		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
-		vals[0] = const_conv_kernel3x3[0][0] * frame[0][0]
+		vals[0] = (const_conv_kernel3x3[0][0] * frame[0][0]
 		+ const_conv_kernel3x3[0][1] * frame[0][1]
 		+ const_conv_kernel3x3[0][2] * frame[0][2]
 		+ const_conv_kernel3x3[1][0] * frame[1][0]
@@ -1589,7 +1589,9 @@ __global__ void k_1D_gf_3x3_vectorized2_constant(unsigned char* input, unsigned 
 		+ const_conv_kernel3x3[1][2] * frame[1][2]
 		+ const_conv_kernel3x3[2][0] * frame[2][0]
 		+ const_conv_kernel3x3[2][1] * frame[2][1]
-		+ const_conv_kernel3x3[2][2] * frame[2][2];
+		+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
+
+		#pragma unroll
 		for (int i = 1; i < 2; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
@@ -1598,7 +1600,7 @@ __global__ void k_1D_gf_3x3_vectorized2_constant(unsigned char* input, unsigned 
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				vals[i] = const_conv_kernel3x3[0][0] * frame[0][0]
+				vals[i] = (const_conv_kernel3x3[0][0] * frame[0][0]
 				+ const_conv_kernel3x3[0][1] * frame[0][1]
 				+ const_conv_kernel3x3[0][2] * frame[0][2]
 				+ const_conv_kernel3x3[1][0] * frame[1][0]
@@ -1606,14 +1608,14 @@ __global__ void k_1D_gf_3x3_vectorized2_constant(unsigned char* input, unsigned 
 				+ const_conv_kernel3x3[1][2] * frame[1][2]
 				+ const_conv_kernel3x3[2][0] * frame[2][0]
 				+ const_conv_kernel3x3[2][1] * frame[2][1]
-				+ const_conv_kernel3x3[2][2] * frame[2][2];
+				+ const_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 			}
 		}
-		reinterpret_cast<uchar2*>(&output[(tx * cols + ty)])[0] = make_uchar2(vals[0] >> 4, vals[1] >> 4);
+		reinterpret_cast<uchar2*>(&output[(tx * cols + ty)])[0] = make_uchar2(vals[0], vals[1]);
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized16_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized16_shared(unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	__shared__  unsigned char cache[34][514];
 
@@ -1728,6 +1730,7 @@ __global__ void k_1D_gf_3x3_vectorized16_shared(unsigned char* input, unsigned c
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 16; i++) {
 			int _ty = ty + i;
 			int _cy = cy + i;
@@ -1755,7 +1758,7 @@ __global__ void k_1D_gf_3x3_vectorized16_shared(unsigned char* input, unsigned c
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized12_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized12_shared(unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	__shared__  unsigned char cache[34][386];
 
@@ -1851,6 +1854,7 @@ __global__ void k_1D_gf_3x3_vectorized12_shared(unsigned char* input, unsigned c
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2] >> 4);
 
+		#pragma unroll
 		for (int i = 1; i < 12; i++) {
 			int _ty = ty + i;
 			int _cy = cy + i;
@@ -1877,7 +1881,7 @@ __global__ void k_1D_gf_3x3_vectorized12_shared(unsigned char* input, unsigned c
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized8_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized8_shared(unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	__shared__  unsigned char cache[34][260];
 
@@ -1955,6 +1959,7 @@ __global__ void k_1D_gf_3x3_vectorized8_shared(unsigned char* input, unsigned ch
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 8; i++) {
 			int _ty = ty + i;
 			int _cy = cy + i;
@@ -1980,7 +1985,7 @@ __global__ void k_1D_gf_3x3_vectorized8_shared(unsigned char* input, unsigned ch
 	}
 }
 
-__global__ void k_1D_gf_3x3_vectorized4_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized4_shared(unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	__shared__  unsigned char cache[34][130];
 
@@ -2042,6 +2047,7 @@ __global__ void k_1D_gf_3x3_vectorized4_shared(unsigned char* input, unsigned ch
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 4; i++) {
 			int _ty = ty + i;
 			int _cy = cy + i;
@@ -2067,7 +2073,7 @@ __global__ void k_1D_gf_3x3_vectorized4_shared(unsigned char* input, unsigned ch
 }
 
 
-__global__ void k_1D_gf_3x3_vectorized2_shared(unsigned char* input, unsigned char* output, int rows, int cols)
+__global__ void k_1D_gf_3x3_vectorized2_shared(unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
 {
 	__shared__  unsigned char cache[34][66];
 
@@ -2124,6 +2130,7 @@ __global__ void k_1D_gf_3x3_vectorized2_shared(unsigned char* input, unsigned ch
 		+ global_conv_kernel3x3[2][1] * frame[2][1]
 		+ global_conv_kernel3x3[2][2] * frame[2][2]) >> 4;
 
+		#pragma unroll
 		for (int i = 1; i < 2; i++) {
 			int _ty = ty + i;
 			int _cy = cy + i;
