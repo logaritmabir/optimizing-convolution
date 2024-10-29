@@ -9,7 +9,7 @@
 int main(int argc, char** argv)
 {
     cv::utils::logging::setLogLevel(cv::utils::logging::LogLevel::LOG_LEVEL_SILENT); /*suppressing annoying OpenCV infos in cmdline*/
-    std::string img_path4096 = "../images/512.png";
+    std::string img_path4096 = "../images/4096.png";
 
     std::vector<cv::Mat> gray_input_images; /*input images in black and white*/
     

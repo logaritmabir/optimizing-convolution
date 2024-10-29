@@ -1188,10 +1188,11 @@ void launch_base_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	CHECK_CUDA_ERROR(cudaMemcpy(d_input, h_input, size, cudaMemcpyHostToDevice));
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	
-	#define BASE_KERNELS
-	#define COARSENED_KERNELS
+	#define BASE_KERNELS 1
+	#define COARSENED_KERNELS 1
+	#define VECTORIZED_KERNELS 1
 
-	#ifdef BASE_KERNELS
+	#if BASE_KERNELS
 	GM_3x3 << <grid, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	cv::imwrite("../images/outputs/GM_3x3.png", *output_img);
@@ -1207,7 +1208,7 @@ void launch_base_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	cv::imwrite("../images/outputs/SM_3x3.png", *output_img);
 	#endif
 
-	#ifdef COARSENED_KERNELS
+	#if COARSENED_KERNELS
 	GM_3x3_Coarsened << <grid_cf2, block >> > (d_input, d_output, rows, cols, 2);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	cv::imwrite("../images/outputs/GM_3x3_CF2.png", *output_img);
@@ -1279,6 +1280,32 @@ void launch_base_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	SM_3x3_Coarsened << <grid_cf16, block, (sizeof(unsigned char) * 34 * (32 * 16 + 2)) >> > (d_input, d_output, rows, cols, 16);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	cv::imwrite("../images/outputs/SM_3x3_CF16.png", *output_img);
+	#endif
+
+	#if VECTORIZED_KERNELS
+	GM_3x3_Coarsened_Vectorized << <grid_cf2, block>> > (d_input, d_output, rows, cols, 2);
+	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
+	cv::imwrite("../images/outputs/SM_3x3_CF2_V.png", *output_img);
+	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+
+	GM_3x3_Coarsened_Vectorized << <grid_cf4, block>> > (d_input, d_output, rows, cols, 4);
+	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
+	cv::imwrite("../images/outputs/SM_3x3_CF4_V.png", *output_img);
+	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+
+	GM_3x3_Coarsened_Vectorized << <grid_cf8, block>> > (d_input, d_output, rows, cols, 8);
+	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
+	cv::imwrite("../images/outputs/SM_3x3_CF8_V.png", *output_img);
+	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+
+	GM_3x3_Coarsened_Vectorized << <grid_cf12, block>> > (d_input, d_output, rows, cols, 12);
+	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
+	cv::imwrite("../images/outputs/SM_3x3_CF12_V.png", *output_img);
+	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+
+	GM_3x3_Coarsened_Vectorized << <grid_cf16, block>> > (d_input, d_output, rows, cols, 16);
+	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
+	cv::imwrite("../images/outputs/SM_3x3_CF16_V.png", *output_img);
 	#endif
 
 	cudaHostUnregister(h_input);
