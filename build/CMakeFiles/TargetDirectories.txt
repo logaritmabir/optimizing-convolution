@@ -1,3 +1,0 @@
-C:/Users/ben/Desktop/optimizing-convolution/build/CMakeFiles/optimizing-convolution.dir
-C:/Users/ben/Desktop/optimizing-convolution/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/ben/Desktop/optimizing-convolution/build/CMakeFiles/ZERO_CHECK.dir
