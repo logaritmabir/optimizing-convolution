@@ -228,8 +228,8 @@ __global__ void SM_3x3_Coarsened(const unsigned char* __restrict__ input, unsign
 		if (cy == 1) {/*left column*/
 			cache[cx * cache_cols] = input[(tx * cols + ty - 1)];
 		}
-		if (cy == 32 * cf + 1) {/*right column*/
-			cache[(cx * cache_cols) + 32 * cf + cf] = input[(tx * cols + ty + cf)];
+		if (cy == 31 * cf + 1) {/*right column*/
+			cache[(cx * cache_cols) + 32 * cf + 1] = input[(tx * cols + ty + cf)];
 		}
 
 		__syncthreads();
