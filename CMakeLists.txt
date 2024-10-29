@@ -14,12 +14,12 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 set(CUDA_FILES
-    src/gaussian-kernels.cu
+    src/kernels.cu
 )
 
 set(CUDA_HEADERS
     include/dependencies.cuh
-    include/gaussian.cuh
+    include/kernels.cuh
 )
 
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3 -arch=sm_75 --expt-relaxed-constexpr -lineinfo")
