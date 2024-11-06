@@ -1,4 +1,5 @@
 #include "kernels.cuh"
+#include "utils.cuh"
 
 inline __device__ void shift_left(unsigned char arr[][3]) {
 	arr[0][0] = arr[0][1];
@@ -8,6 +9,9 @@ inline __device__ void shift_left(unsigned char arr[][3]) {
 	arr[1][1] = arr[1][2];
 	arr[2][1] = arr[2][2];
 }
+__constant__ Npp32s NPP_Filter[9] = {1, 2, 1, 
+									2, 4, 2, 
+									1, 2, 1 };
 
 __constant__ unsigned char CM_Filter[3][3] = {{1, 2, 1}, 
 											{2, 4, 2}, 
@@ -2157,7 +2161,7 @@ __global__ void SM_3x3_CF2_Vec(unsigned char* __restrict__ input, unsigned char*
 	}
 }
 
-void launch_base_kernels(cv::Mat* input_img, cv::Mat* output_img)
+void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 {
 	unsigned char* d_input = nullptr;
 	unsigned char* d_output = nullptr;
@@ -2176,16 +2180,17 @@ void launch_base_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	dim3 grid_cf12(((cols / 12) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
 	dim3 grid_cf16(((cols / 16) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
 
-	cudaHostRegister(h_output, size, cudaHostRegisterPortable);
-	cudaHostRegister(h_input, size, cudaHostRegisterPortable);
+	CHECK_CUDA_ERROR(cudaHostRegister(h_output, size, cudaHostRegisterPortable));
+	CHECK_CUDA_ERROR(cudaHostRegister(h_input, size, cudaHostRegisterPortable));
 	CHECK_CUDA_ERROR(cudaMalloc((void**)&d_input, size));
 	CHECK_CUDA_ERROR(cudaMalloc((void**)&d_output, size));
 	CHECK_CUDA_ERROR(cudaMemcpy(d_input, h_input, size, cudaMemcpyHostToDevice));
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	
-	#define BASE_KERNELS 1
-	#define COARSENED_KERNELS 1
-	#define VECTORIZED_KERNELS 1
+	#define BASE_KERNELS 0
+	#define COARSENED_KERNELS 0
+	#define VECTORIZED_KERNELS 0
+	#define NPP_KERNEL 1
 
 	#if BASE_KERNELS
 	GM_3x3 << <grid, block >> > (d_input, d_output, rows, cols);
@@ -2201,6 +2206,7 @@ void launch_base_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	SM_3x3 << <grid, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	cv::imwrite("../images/outputs/SM_3x3.png", *output_img);
+	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	#endif
 
 	#if COARSENED_KERNELS
@@ -2275,10 +2281,10 @@ void launch_base_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	SM_3x3_CF16 << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	cv::imwrite("../images/outputs/SM_3x3_CF16.png", *output_img);
+	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	#endif
 
 	#if VECTORIZED_KERNELS
-
 	GM_3x3_CF2_Vec << <grid_cf2, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	cv::imwrite("../images/outputs/GM_3x3_CF2_V.png", *output_img);
@@ -2352,6 +2358,29 @@ void launch_base_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	SM_3x3_CF16_Vec << <grid_cf16, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	cv::imwrite("../images/outputs/SM_3x3_CF16_V.png", *output_img);
+	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+	#endif
+
+	#if NPP_KERNEL
+	Npp32s step = cols * rows;
+	const Npp32s h_kernel[9] = {1,2,1,2,4,2,1,2,1};
+	Npp32s* d_kernel = NULL;
+
+	nppiFilterGauss_8u_C1R(d_input, input_img->step, d_output, input_img->step, {cols, rows}, NPP_MASK_SIZE_3_X_3);
+	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
+	cv::imwrite("../images/outputs/nppiFilterGauss_8u_C1R.png", *output_img);
+	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+
+	CHECK_CUDA_ERROR(cudaMalloc(&d_kernel, sizeof(Npp32s) * 9));
+	CHECK_CUDA_ERROR(cudaMemcpy(d_kernel, h_kernel, sizeof(Npp32s) * 9, cudaMemcpyHostToDevice));
+	nppiFilter_8u_C1R(d_input, cols * sizeof(unsigned char), d_output, cols * sizeof(unsigned char), {cols, rows}, d_kernel, {3,3}, {1,1}, 16);
+	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
+	cv::imwrite("../images/outputs/nppiFilter_8u_C1R.png", *output_img);
+	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+	#endif
+
+	#if CUDNN_KERNEL
+
 	#endif
 
 	cudaHostUnregister(h_input);

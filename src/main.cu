@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     }
 
     for(int i = 0; i < gray_input_images.size(); i++){
-        launch_base_kernels(&gray_input_images.at(i),&output1.at(i));
+        launch_kernels(&gray_input_images.at(i),&output1.at(i));
     }
 
     return 0;
