@@ -4,6 +4,9 @@
 #include <device_launch_parameters.h>
 #include <cuda.h>
 #include <npp.h>
+#include <cudnn.h>
+
+#include <arrayfire.h>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgcodecs.hpp>

@@ -9,9 +9,6 @@ inline __device__ void shift_left(unsigned char arr[][3]) {
 	arr[1][1] = arr[1][2];
 	arr[2][1] = arr[2][2];
 }
-__constant__ Npp32s NPP_Filter[9] = {1, 2, 1, 
-									2, 4, 2, 
-									1, 2, 1 };
 
 __constant__ unsigned char CM_Filter[3][3] = {{1, 2, 1}, 
 											{2, 4, 2}, 
@@ -2190,7 +2187,9 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	#define BASE_KERNELS 0
 	#define COARSENED_KERNELS 0
 	#define VECTORIZED_KERNELS 0
-	#define NPP_KERNEL 1
+	#define NPP_KERNEL 0
+	#define CUDNN_KERNEL 0
+	#define ARRAYFIRE 1
 
 	#if BASE_KERNELS
 	GM_3x3 << <grid, block >> > (d_input, d_output, rows, cols);
@@ -2380,12 +2379,73 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	#endif
 
 	#if CUDNN_KERNEL
+	cudnnHandle_t cudnn;
+	CHECK_CUDNN_ERROR(cudnnCreate(&cudnn));
 
+	cudnnTensorDescriptor_t input_descriptor, output_descriptor;
+	CHECK_CUDNN_ERROR(cudnnCreateTensorDescriptor(&input_descriptor));
+	CHECK_CUDNN_ERROR(cudnnSetTensor4dDescriptor(input_descriptor, CUDNN_TENSOR_NHWC, CUDNN_DATA_UINT8, 1, 1, rows, cols));
+	CHECK_CUDNN_ERROR(cudnnCreateTensorDescriptor(&output_descriptor));
+	CHECK_CUDNN_ERROR(cudnnSetTensor4dDescriptor(output_descriptor, CUDNN_TENSOR_NHWC, CUDNN_DATA_INT8, 1, 1, rows, cols));
+
+	cudnnFilterDescriptor_t f_descriptor;
+	CHECK_CUDNN_ERROR(cudnnCreateFilterDescriptor(&f_descriptor));
+	CHECK_CUDNN_ERROR(cudnnSetFilter4dDescriptor(f_descriptor, CUDNN_DATA_INT8, CUDNN_TENSOR_NHWC, 1, 1, 3, 3));
+
+	cudnnConvolutionDescriptor_t conv_descriptor;
+    CHECK_CUDNN_ERROR(cudnnCreateConvolutionDescriptor(&conv_descriptor));
+    CHECK_CUDNN_ERROR(cudnnSetConvolution2dDescriptor(conv_descriptor, 1, 1, 1, 1, 1, 1, CUDNN_CONVOLUTION, CUDNN_DATA_INT32));
+
+	size_t workspace_size = 0;
+	void* d_workspace = nullptr;
+	
+	CHECK_CUDNN_ERROR(cudnnGetConvolutionForwardWorkspaceSize(
+		cudnn, input_descriptor, f_descriptor, conv_descriptor, output_descriptor, CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM , &workspace_size));
+
+	std::cout << workspace_size << std::endl;
+	CHECK_CUDA_ERROR(cudaMalloc(&d_workspace, workspace_size));
+
+	float alpha = 1.0f;
+	float beta = 0.0f;
+	const float h_kernel[9] = {1,2,1,2,4,2,1,2,1};
+	float* d_kernel = NULL;
+	CHECK_CUDA_ERROR(cudaMalloc(&d_kernel, sizeof(float) * 9));
+	CHECK_CUDA_ERROR(cudaMemcpy(d_kernel, h_kernel, sizeof(float) * 9, cudaMemcpyHostToDevice));
+
+	CHECK_CUDNN_ERROR(cudnnConvolutionForward(cudnn, &alpha, input_descriptor, d_input, f_descriptor, d_kernel, conv_descriptor,
+		CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM, d_workspace, workspace_size, &beta, output_descriptor, d_output));
+
+	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
+	cv::imwrite("../images/outputs/cuDNN.png", *output_img);
+	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+
+	CHECK_CUDNN_ERROR(cudnnDestroyTensorDescriptor(input_descriptor));
+	CHECK_CUDNN_ERROR(cudnnDestroyTensorDescriptor(output_descriptor));
+    CHECK_CUDNN_ERROR(cudnnDestroyFilterDescriptor(f_descriptor));
+    CHECK_CUDNN_ERROR(cudnnDestroyConvolutionDescriptor(conv_descriptor));
+    CHECK_CUDNN_ERROR(cudnnDestroy(cudnn));
 	#endif
 
-	cudaHostUnregister(h_input);
-	cudaHostUnregister(h_output);
-	cudaFree(d_input);
-	cudaFree(d_output);
-	cudaDeviceReset();
+	#if ARRAYFIRE
+	CHECK_ARRAYFIRE(af_init());
+	CHECK_ARRAYFIRE(af_set_backend(AF_BACKEND_CPU));
+	unsigned char h_kernel[9] = {1, 2, 1, 2, 4, 2, 1, 2, 1};
+	dim_t dims_of_input[2] = {rows, cols};
+	dim_t dims_of_kernel[2] = {3, 3};
+
+	af_array af_input, af_kernel, af_output;
+	CHECK_ARRAYFIRE(af_create_array(&af_input, h_input, 2, dims_of_input, u8));
+	CHECK_ARRAYFIRE(af_create_array(&af_kernel, h_kernel, 2, dims_of_kernel, u8));
+	
+	CHECK_ARRAYFIRE(af_convolve2(&af_output, af_input, af_kernel, AF_CONV_DEFAULT, AF_CONV_AUTO));
+	CHECK_ARRAYFIRE(af_get_data_ptr(h_output, af_output));
+	cv::imwrite("../images/outputs/arrayFire.png", *output_img);
+
+	
+	#endif
+
+	CHECK_CUDA_ERROR(cudaHostUnregister(h_input));
+	CHECK_CUDA_ERROR(cudaHostUnregister(h_output));
+	CHECK_CUDA_ERROR(cudaFree(d_input));
+	CHECK_CUDA_ERROR(cudaFree(d_output));
 }
