@@ -28,7 +28,7 @@ void check_dnn(T stat, const char* file, const int line)
 	}
 }
 
-#define CHECK_ARRAYFIRE(val) check_dnn((val), __FILE__, __LINE__)
+#define CHECK_ARRAYFIRE(val) check_af((val), __FILE__, __LINE__)
 template <typename T>
 void check_af(T err, const char* file, const int line)
 {

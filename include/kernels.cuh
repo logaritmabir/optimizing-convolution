@@ -1,5 +1,7 @@
 #pragma once
 
+typedef unsigned char imtype;
+
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <cuda.h>
@@ -7,6 +9,10 @@
 #include <cudnn.h>
 
 #include <arrayfire.h>
+
+#include <opencv2/cudafilters.hpp>
+#include <opencv2/cudaimgproc.hpp>
+#include <opencv2/cudaarithm.hpp>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgcodecs.hpp>

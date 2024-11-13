@@ -1,27 +1,33 @@
-#include <string>
-#include <cmath>
-#include <chrono>
-#include <math.h>
-
 #include "kernels.cuh"
 
 int main(int argc, char** argv)
 {
     cv::utils::logging::setLogLevel(cv::utils::logging::LogLevel::LOG_LEVEL_SILENT); /*suppressing annoying OpenCV infos in cmdline*/
-    std::string img_path4096 = "../images/4096.png";
+    std::string img_path512 = "../images/inputs/512.png";
+    std::string img_path2048 = "../images/inputs/2048.png";
+    std::string img_path4096 = "../images/inputs/4096.png";
+    std::string img_path8192 = "../images/inputs/8192.png";
 
-    std::vector<cv::Mat> gray_input_images; /*input images in black and white*/
-    
-    gray_input_images.push_back(cv::imread(img_path4096, cv::IMREAD_GRAYSCALE));
+    std::vector<cv::Mat> input_8UC1;
+    std::vector<cv::Mat> input_32FC1;
+    input_8UC1.push_back(cv::imread(img_path4096, cv::IMREAD_GRAYSCALE));
 
-    std::vector <cv::Mat> output1; /*image buffers that stores copy of gray images*/
-
-    for (cv::Mat& e : gray_input_images) {
-        output1.push_back(e.clone());
+    for (cv::Mat& image : input_8UC1) {
+        cv::Mat buffer;
+        image.convertTo(buffer, CV_16FC1, 1.0 / 255.0);
+        input_32FC1.push_back(buffer);
     }
 
-    for(int i = 0; i < gray_input_images.size(); i++){
-        launch_kernels(&gray_input_images.at(i),&output1.at(i));
+    std::vector <cv::Mat> output_8UC1;
+    std::vector <cv::Mat> output_32FC1;
+
+    for(int i = 0; i < input_8UC1.size(); i++){
+        output_8UC1.push_back(input_8UC1.at(i).clone());
+        output_32FC1.push_back(input_32FC1.at(i).clone());
+    }
+
+    for(int i = 0; i < input_8UC1.size(); i++){
+        launch_kernels(&input_8UC1.at(i), &output_8UC1.at(i));
     }
 
     return 0;

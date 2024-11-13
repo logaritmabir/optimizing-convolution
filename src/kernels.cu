@@ -1,7 +1,7 @@
 #include "kernels.cuh"
 #include "utils.cuh"
 
-inline __device__ void shift_left(unsigned char arr[][3]) {
+inline __device__ void shift_left(imtype arr[][3]) {
 	arr[0][0] = arr[0][1];
 	arr[1][0] = arr[1][1];
 	arr[2][0] = arr[2][1];
@@ -10,15 +10,15 @@ inline __device__ void shift_left(unsigned char arr[][3]) {
 	arr[2][1] = arr[2][2];
 }
 
-__constant__ unsigned char CM_Filter[3][3] = {{1, 2, 1}, 
-											{2, 4, 2}, 
-											{1, 2, 1} };
+__constant__ imtype CM_Filter[3][3] =  {{1, 2, 1}, 
+										{2, 4, 2}, 
+										{1, 2, 1} };
 
-__device__ unsigned char GM_Filter[3][3] = {{1, 2, 1}, 
-											{2, 4, 2}, 
-											{1, 2, 1} };
+__device__ imtype GM_Filter[3][3] = {{1, 2, 1}, 
+									 {2, 4, 2}, 
+									 {1, 2, 1} };
 
-__global__ void GM_3x3(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols){
+__global__ void GM_3x3(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols){
 	int ty = blockIdx.x * blockDim.x + threadIdx.x;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
@@ -30,11 +30,11 @@ __global__ void GM_3x3(const unsigned char* __restrict__ input, unsigned char* _
 		 + GM_Filter[1][2] * input[tx * cols + ty + 1]
 		 + GM_Filter[2][0] * input[(tx + 1) * cols + ty - 1]
 		 + GM_Filter[2][1] * input[(tx + 1) * cols + ty]
-		 + GM_Filter[2][2] * input[(tx + 1) * cols + ty + 1]) >> 4;
+		 + GM_Filter[2][2] * input[(tx + 1) * cols + ty + 1]) / 16;
 	}
 }
 
-__global__ void CM_3x3(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void CM_3x3(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = blockIdx.x * blockDim.x + threadIdx.x;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -48,13 +48,13 @@ __global__ void CM_3x3(const unsigned char* __restrict__ input, unsigned char* _
 		+ CM_Filter[1][2] * input[tx * cols + ty + 1]
 		+ CM_Filter[2][0] * input[(tx + 1) * cols + ty - 1]
 		+ CM_Filter[2][1] * input[(tx + 1) * cols + ty]
-		+ CM_Filter[2][2] * input[(tx + 1) * cols + ty + 1]) >> 4;
+		+ CM_Filter[2][2] * input[(tx + 1) * cols + ty + 1]) / 16;
 	}
 }
 
-__global__ void SM_3x3(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
-	__shared__  unsigned char cache[34][34];
+	__shared__  imtype cache[34][34];
 
 	int ty = blockIdx.x * blockDim.x + threadIdx.x;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -89,16 +89,16 @@ __global__ void SM_3x3(const unsigned char* __restrict__ input, unsigned char* _
 		+ GM_Filter[1][2] * cache[cx][cy + 1]
 		+ GM_Filter[2][0] * cache[cx + 1][cy - 1]
 		+ GM_Filter[2][1] * cache[cx + 1][cy]
-		+ GM_Filter[2][2] * cache[cx + 1][cy + 1]) >> 4;
+		+ GM_Filter[2][2] * cache[cx + 1][cy + 1]) / 16;
 	}
 }
 
-__global__ void GM_3x3_CF16(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void GM_3x3_CF16(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -119,7 +119,7 @@ __global__ void GM_3x3_CF16(const unsigned char* __restrict__ input, unsigned ch
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 16; i++) {
@@ -138,18 +138,18 @@ __global__ void GM_3x3_CF16(const unsigned char* __restrict__ input, unsigned ch
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) >> 4;
+				+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void GM_3x3_CF12(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void GM_3x3_CF12(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -170,7 +170,7 @@ __global__ void GM_3x3_CF12(const unsigned char* __restrict__ input, unsigned ch
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 12; i++) {
@@ -189,18 +189,18 @@ __global__ void GM_3x3_CF12(const unsigned char* __restrict__ input, unsigned ch
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) >> 4;
+				+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void GM_3x3_CF8(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void GM_3x3_CF8(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -221,7 +221,7 @@ __global__ void GM_3x3_CF8(const unsigned char* __restrict__ input, unsigned cha
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 8; i++) {
@@ -240,17 +240,17 @@ __global__ void GM_3x3_CF8(const unsigned char* __restrict__ input, unsigned cha
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) >> 4;
+				+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void GM_3x3_CF4(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void GM_3x3_CF4(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -271,7 +271,7 @@ __global__ void GM_3x3_CF4(const unsigned char* __restrict__ input, unsigned cha
 			+ GM_Filter[1][2] * frame[1][2]
 			+ GM_Filter[2][0] * frame[2][0]
 			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]) >> 4;
+			+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 4; i++) {
@@ -290,18 +290,18 @@ __global__ void GM_3x3_CF4(const unsigned char* __restrict__ input, unsigned cha
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) >> 4;
+					+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void GM_3x3_CF2(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void GM_3x3_CF2(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -322,7 +322,7 @@ __global__ void GM_3x3_CF2(const unsigned char* __restrict__ input, unsigned cha
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 2; i++) {
@@ -341,18 +341,18 @@ __global__ void GM_3x3_CF2(const unsigned char* __restrict__ input, unsigned cha
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) >> 4;
+					+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void CM_3x3_CF16(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void CM_3x3_CF16(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -373,7 +373,7 @@ __global__ void CM_3x3_CF16(const unsigned char* __restrict__ input, unsigned ch
 			+ CM_Filter[1][2] * frame[1][2]
 			+ CM_Filter[2][0] * frame[2][0]
 			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]) >> 4;
+			+ CM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 16; i++) {
@@ -392,17 +392,17 @@ __global__ void CM_3x3_CF16(const unsigned char* __restrict__ input, unsigned ch
 					+ CM_Filter[1][2] * frame[1][2]
 					+ CM_Filter[2][0] * frame[2][0]
 					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]) >> 4;
+					+ CM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void CM_3x3_CF12(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void CM_3x3_CF12(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -424,7 +424,7 @@ __global__ void CM_3x3_CF12(const unsigned char* __restrict__ input, unsigned ch
 			+ CM_Filter[1][2] * frame[1][2]
 			+ CM_Filter[2][0] * frame[2][0]
 			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]) >> 4;
+			+ CM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 12; i++) {
@@ -443,17 +443,17 @@ __global__ void CM_3x3_CF12(const unsigned char* __restrict__ input, unsigned ch
 					+ CM_Filter[1][2] * frame[1][2]
 					+ CM_Filter[2][0] * frame[2][0]
 					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]) >> 4;
+					+ CM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void CM_3x3_CF8(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void CM_3x3_CF8(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -474,7 +474,7 @@ __global__ void CM_3x3_CF8(const unsigned char* __restrict__ input, unsigned cha
 			+ CM_Filter[1][2] * frame[1][2]
 			+ CM_Filter[2][0] * frame[2][0]
 			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]) >> 4;
+			+ CM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 8; i++) {
@@ -493,18 +493,18 @@ __global__ void CM_3x3_CF8(const unsigned char* __restrict__ input, unsigned cha
 					+ CM_Filter[1][2] * frame[1][2]
 					+ CM_Filter[2][0] * frame[2][0]
 					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]) >> 4;
+					+ CM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void CM_3x3_CF4(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void CM_3x3_CF4(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -525,7 +525,7 @@ __global__ void CM_3x3_CF4(const unsigned char* __restrict__ input, unsigned cha
 			+ CM_Filter[1][2] * frame[1][2]
 			+ CM_Filter[2][0] * frame[2][0]
 			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]) >> 4;
+			+ CM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 4; i++) {
@@ -544,18 +544,18 @@ __global__ void CM_3x3_CF4(const unsigned char* __restrict__ input, unsigned cha
 					+ CM_Filter[1][2] * frame[1][2]
 					+ CM_Filter[2][0] * frame[2][0]
 					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]) >> 4;
+					+ CM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void CM_3x3_CF2(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void CM_3x3_CF2(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -576,7 +576,7 @@ __global__ void CM_3x3_CF2(const unsigned char* __restrict__ input, unsigned cha
 			+ CM_Filter[1][2] * frame[1][2]
 			+ CM_Filter[2][0] * frame[2][0]
 			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]) >> 4;
+			+ CM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 2; i++) {
@@ -595,15 +595,15 @@ __global__ void CM_3x3_CF2(const unsigned char* __restrict__ input, unsigned cha
 					+ CM_Filter[1][2] * frame[1][2]
 					+ CM_Filter[2][0] * frame[2][0]
 					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]) >> 4;
+					+ CM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void SM_3x3_CF16(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3_CF16(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
-	__shared__  unsigned char cache[34][514];
+	__shared__  imtype cache[34][514];
 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -673,7 +673,7 @@ __global__ void SM_3x3_CF16(const unsigned char* __restrict__ input, unsigned ch
 
 		__syncthreads();
 
-		unsigned char frame[3][3];
+		imtype frame[3][3];
 
 		frame[0][0] = cache[cx - 1][cy - 1];
 		frame[0][1] = cache[cx - 1][cy];
@@ -693,7 +693,7 @@ __global__ void SM_3x3_CF16(const unsigned char* __restrict__ input, unsigned ch
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 16; i++) {
@@ -713,15 +713,15 @@ __global__ void SM_3x3_CF16(const unsigned char* __restrict__ input, unsigned ch
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) >> 4;
+				+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void SM_3x3_CF12(const unsigned char* __restrict__ input, unsigned char *__restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3_CF12(const imtype* __restrict__ input, imtype *__restrict__ output, const int rows, const int cols)
 {
-	__shared__  unsigned char cache[34][386];
+	__shared__  imtype cache[34][386];
 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -779,7 +779,7 @@ __global__ void SM_3x3_CF12(const unsigned char* __restrict__ input, unsigned ch
 
 		__syncthreads();
 
-		unsigned char frame[3][3];
+		imtype frame[3][3];
 
 		frame[0][0] = cache[cx - 1][cy - 1];
 		frame[0][1] = cache[cx - 1][cy];
@@ -799,7 +799,7 @@ __global__ void SM_3x3_CF12(const unsigned char* __restrict__ input, unsigned ch
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 12; i++) {
@@ -819,15 +819,15 @@ __global__ void SM_3x3_CF12(const unsigned char* __restrict__ input, unsigned ch
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) >> 4;
+				+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void SM_3x3_CF8(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3_CF8(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
-	__shared__  unsigned char cache[34][258];
+	__shared__  imtype cache[34][258];
 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -872,7 +872,7 @@ __global__ void SM_3x3_CF8(const unsigned char* __restrict__ input, unsigned cha
 		}
 		__syncthreads();
 
-		unsigned char frame[3][3];
+		imtype frame[3][3];
 
 		frame[0][0] = cache[cx - 1][cy - 1];
 		frame[0][1] = cache[cx - 1][cy];
@@ -892,7 +892,7 @@ __global__ void SM_3x3_CF8(const unsigned char* __restrict__ input, unsigned cha
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 8; i++) {
@@ -912,15 +912,15 @@ __global__ void SM_3x3_CF8(const unsigned char* __restrict__ input, unsigned cha
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) >> 4;
+				+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void SM_3x3_CF4(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3_CF4(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
-	__shared__  unsigned char cache[34][130];
+	__shared__  imtype cache[34][130];
 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -954,7 +954,7 @@ __global__ void SM_3x3_CF4(const unsigned char* __restrict__ input, unsigned cha
 		}
 		__syncthreads();
 
-		unsigned char frame[3][3];
+		imtype frame[3][3];
 
 		frame[0][0] = cache[cx - 1][cy - 1];
 		frame[0][1] = cache[cx - 1][cy];
@@ -974,7 +974,7 @@ __global__ void SM_3x3_CF4(const unsigned char* __restrict__ input, unsigned cha
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 4; i++) {
@@ -994,15 +994,15 @@ __global__ void SM_3x3_CF4(const unsigned char* __restrict__ input, unsigned cha
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) >> 4;
+				+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void SM_3x3_CF2(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3_CF2(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
-	__shared__  unsigned char cache[34][66];
+	__shared__  imtype cache[34][66];
 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1030,7 +1030,7 @@ __global__ void SM_3x3_CF2(const unsigned char* __restrict__ input, unsigned cha
 		}
 		__syncthreads();
 
-		unsigned char frame[3][3];
+		imtype frame[3][3];
 
 		frame[0][0] = cache[cx - 1][cy - 1];
 		frame[0][1] = cache[cx - 1][cy];
@@ -1050,7 +1050,7 @@ __global__ void SM_3x3_CF2(const unsigned char* __restrict__ input, unsigned cha
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 2; i++) {
@@ -1070,19 +1070,19 @@ __global__ void SM_3x3_CF2(const unsigned char* __restrict__ input, unsigned cha
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) >> 4;
+				+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 	}
 }
 
-__global__ void GM_3x3_CF16_Vec(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void GM_3x3_CF16_Vec(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int vals[16] = { 0 };
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty  < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -1103,7 +1103,7 @@ __global__ void GM_3x3_CF16_Vec(const unsigned char* __restrict__ input, unsigne
 			+ GM_Filter[1][2] * frame[1][2]
 			+ GM_Filter[2][0] * frame[2][0]
 			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]) >> 4;
+			+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 16; i++) {
@@ -1122,7 +1122,7 @@ __global__ void GM_3x3_CF16_Vec(const unsigned char* __restrict__ input, unsigne
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) >> 4;
+					+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
@@ -1132,13 +1132,13 @@ __global__ void GM_3x3_CF16_Vec(const unsigned char* __restrict__ input, unsigne
 	}
 }
 
-__global__ void GM_3x3_CF12_Vec(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void GM_3x3_CF12_Vec(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int vals[12] = { 0 };
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -1159,7 +1159,7 @@ __global__ void GM_3x3_CF12_Vec(const unsigned char* __restrict__ input, unsigne
 			+ GM_Filter[1][2] * frame[1][2]
 			+ GM_Filter[2][0] * frame[2][0]
 			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]) >> 4;
+			+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 12; i++) {
@@ -1178,7 +1178,7 @@ __global__ void GM_3x3_CF12_Vec(const unsigned char* __restrict__ input, unsigne
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) >> 4;
+					+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
@@ -1186,13 +1186,13 @@ __global__ void GM_3x3_CF12_Vec(const unsigned char* __restrict__ input, unsigne
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8], vals[9], vals[10], vals[11]);
 	}
 }
-__global__ void GM_3x3_CF8_Vec(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void GM_3x3_CF8_Vec(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int vals[8] = { 0 };
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -1213,7 +1213,7 @@ __global__ void GM_3x3_CF8_Vec(const unsigned char* __restrict__ input, unsigned
 			+ GM_Filter[1][2] * frame[1][2]
 			+ GM_Filter[2][0] * frame[2][0]
 			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]) >> 4;
+			+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 8; i++) {
@@ -1232,7 +1232,7 @@ __global__ void GM_3x3_CF8_Vec(const unsigned char* __restrict__ input, unsigned
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) >> 4;
+					+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
@@ -1240,14 +1240,14 @@ __global__ void GM_3x3_CF8_Vec(const unsigned char* __restrict__ input, unsigned
 	}
 }
 
-__global__ void GM_3x3_CF4_Vec(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void GM_3x3_CF4_Vec(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int vals[4] = { 0 };
 
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -1268,7 +1268,7 @@ __global__ void GM_3x3_CF4_Vec(const unsigned char* __restrict__ input, unsigned
 			+ GM_Filter[1][2] * frame[1][2]
 			+ GM_Filter[2][0] * frame[2][0]
 			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]) >> 4; 
+			+ GM_Filter[2][2] * frame[2][2]) / 16; 
 
 		#pragma unroll
 		for (int i = 1; i < 4; i++) {
@@ -1287,21 +1287,21 @@ __global__ void GM_3x3_CF4_Vec(const unsigned char* __restrict__ input, unsigned
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) >> 4;
+					+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
 	}
 }
 
-__global__ void GM_3x3_CF2_Vec(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void GM_3x3_CF2_Vec(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int vals[2] = { 0 };
 
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -1322,7 +1322,7 @@ __global__ void GM_3x3_CF2_Vec(const unsigned char* __restrict__ input, unsigned
 			+ GM_Filter[1][2] * frame[1][2]
 			+ GM_Filter[2][0] * frame[2][0]
 			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]) >> 4;
+			+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 2; i++) {
@@ -1341,20 +1341,20 @@ __global__ void GM_3x3_CF2_Vec(const unsigned char* __restrict__ input, unsigned
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) >> 4;
+					+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar2*>(&output[(tx * cols + ty)])[0] = make_uchar2(vals[0], vals[1]);
 	}
 }
 
-__global__ void CM_3x3_CF16_Vec(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void CM_3x3_CF16_Vec(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int vals[16] = { 0 };
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -1375,7 +1375,7 @@ __global__ void CM_3x3_CF16_Vec(const unsigned char* __restrict__ input, unsigne
 			+ CM_Filter[1][2] * frame[1][2]
 			+ CM_Filter[2][0] * frame[2][0]
 			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]) >> 4;
+			+ CM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 16; i++) {
@@ -1394,7 +1394,7 @@ __global__ void CM_3x3_CF16_Vec(const unsigned char* __restrict__ input, unsigne
 					+ CM_Filter[1][2] * frame[1][2]
 					+ CM_Filter[2][0] * frame[2][0]
 					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]) >> 4;
+					+ CM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
@@ -1404,13 +1404,13 @@ __global__ void CM_3x3_CF16_Vec(const unsigned char* __restrict__ input, unsigne
 	}
 }
 
-__global__ void CM_3x3_CF12_Vec(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void CM_3x3_CF12_Vec(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int vals[12] = { 0 };
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -1431,7 +1431,7 @@ __global__ void CM_3x3_CF12_Vec(const unsigned char* __restrict__ input, unsigne
 		+ CM_Filter[1][2] * frame[1][2]
 		+ CM_Filter[2][0] * frame[2][0]
 		+ CM_Filter[2][1] * frame[2][1]
-		+ CM_Filter[2][2] * frame[2][2]) >> 4;
+		+ CM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 12; i++) {
@@ -1450,7 +1450,7 @@ __global__ void CM_3x3_CF12_Vec(const unsigned char* __restrict__ input, unsigne
 				+ CM_Filter[1][2] * frame[1][2]
 				+ CM_Filter[2][0] * frame[2][0]
 				+ CM_Filter[2][1] * frame[2][1]
-				+ CM_Filter[2][2] * frame[2][2]) >> 4;
+				+ CM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
@@ -1458,13 +1458,13 @@ __global__ void CM_3x3_CF12_Vec(const unsigned char* __restrict__ input, unsigne
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty + 8)])[0] = make_uchar4(vals[8], vals[9], vals[10], vals[11]);
 	}
 }
-__global__ void CM_3x3_CF8_Vec(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void CM_3x3_CF8_Vec(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int vals[8] = { 0 };
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -1485,7 +1485,7 @@ __global__ void CM_3x3_CF8_Vec(const unsigned char* __restrict__ input, unsigned
 		+ CM_Filter[1][2] * frame[1][2]
 		+ CM_Filter[2][0] * frame[2][0]
 		+ CM_Filter[2][1] * frame[2][1]
-		+ CM_Filter[2][2] * frame[2][2]) >> 4;
+		+ CM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 8; i++) {
@@ -1504,7 +1504,7 @@ __global__ void CM_3x3_CF8_Vec(const unsigned char* __restrict__ input, unsigned
 				+ CM_Filter[1][2] * frame[1][2]
 				+ CM_Filter[2][0] * frame[2][0]
 				+ CM_Filter[2][1] * frame[2][1]
-				+ CM_Filter[2][2] * frame[2][2]) >> 4;
+				+ CM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
@@ -1512,13 +1512,13 @@ __global__ void CM_3x3_CF8_Vec(const unsigned char* __restrict__ input, unsigned
 	}
 }
 
-__global__ void CM_3x3_CF4_Vec(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void CM_3x3_CF4_Vec(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int vals[4] = { 0 };
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -1539,7 +1539,7 @@ __global__ void CM_3x3_CF4_Vec(const unsigned char* __restrict__ input, unsigned
 		+ CM_Filter[1][2] * frame[1][2]
 		+ CM_Filter[2][0] * frame[2][0]
 		+ CM_Filter[2][1] * frame[2][1]
-		+ CM_Filter[2][2] * frame[2][2]) >> 4;
+		+ CM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 4; i++) {
@@ -1558,20 +1558,20 @@ __global__ void CM_3x3_CF4_Vec(const unsigned char* __restrict__ input, unsigned
 				+ CM_Filter[1][2] * frame[1][2]
 				+ CM_Filter[2][0] * frame[2][0]
 				+ CM_Filter[2][1] * frame[2][1]
-				+ CM_Filter[2][2] * frame[2][2]) >> 4;
+				+ CM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
 	}
 }
 
-__global__ void CM_3x3_CF2_Vec(const unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void CM_3x3_CF2_Vec(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int vals[2] = { 0 };
-	unsigned char frame[3][3];
+	imtype frame[3][3];
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
@@ -1592,7 +1592,7 @@ __global__ void CM_3x3_CF2_Vec(const unsigned char* __restrict__ input, unsigned
 		+ CM_Filter[1][2] * frame[1][2]
 		+ CM_Filter[2][0] * frame[2][0]
 		+ CM_Filter[2][1] * frame[2][1]
-		+ CM_Filter[2][2] * frame[2][2]) >> 4;
+		+ CM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 2; i++) {
@@ -1611,16 +1611,16 @@ __global__ void CM_3x3_CF2_Vec(const unsigned char* __restrict__ input, unsigned
 				+ CM_Filter[1][2] * frame[1][2]
 				+ CM_Filter[2][0] * frame[2][0]
 				+ CM_Filter[2][1] * frame[2][1]
-				+ CM_Filter[2][2] * frame[2][2]) >> 4;
+				+ CM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar2*>(&output[(tx * cols + ty)])[0] = make_uchar2(vals[0], vals[1]);
 	}
 }
 
-__global__ void SM_3x3_CF16_Vec(unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3_CF16_Vec(unsigned char* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
-	__shared__  unsigned char cache[34][514];
+	__shared__  imtype cache[34][514];
 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 16;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1711,7 +1711,7 @@ __global__ void SM_3x3_CF16_Vec(unsigned char* __restrict__ input, unsigned char
 
 		__syncthreads();
 		int vals[16] = { 0 };
-		unsigned char frame[3][3];
+		imtype frame[3][3];
 
 		frame[0][0] = cache[cx - 1][cy - 1];
 		frame[0][1] = cache[cx - 1][cy];
@@ -1731,7 +1731,7 @@ __global__ void SM_3x3_CF16_Vec(unsigned char* __restrict__ input, unsigned char
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 16; i++) {
@@ -1751,7 +1751,7 @@ __global__ void SM_3x3_CF16_Vec(unsigned char* __restrict__ input, unsigned char
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) >> 4;
+				+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
@@ -1761,9 +1761,9 @@ __global__ void SM_3x3_CF16_Vec(unsigned char* __restrict__ input, unsigned char
 	}
 }
 
-__global__ void SM_3x3_CF12_Vec(unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3_CF12_Vec(unsigned char* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
-	__shared__  unsigned char cache[34][386];
+	__shared__  imtype cache[34][386];
 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 12;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1835,7 +1835,7 @@ __global__ void SM_3x3_CF12_Vec(unsigned char* __restrict__ input, unsigned char
 		}
 		__syncthreads();
 		int vals[12] = { 0 };
-		unsigned char frame[3][3];
+		imtype frame[3][3];
 
 		frame[0][0] = cache[cx - 1][cy - 1];
 		frame[0][1] = cache[cx - 1][cy];
@@ -1855,7 +1855,7 @@ __global__ void SM_3x3_CF12_Vec(unsigned char* __restrict__ input, unsigned char
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2] >> 4);
+		+ GM_Filter[2][2] * frame[2][2] / 16);
 
 		#pragma unroll
 		for (int i = 1; i < 12; i++) {
@@ -1875,7 +1875,7 @@ __global__ void SM_3x3_CF12_Vec(unsigned char* __restrict__ input, unsigned char
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) >> 4;
+				+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
@@ -1884,9 +1884,9 @@ __global__ void SM_3x3_CF12_Vec(unsigned char* __restrict__ input, unsigned char
 	}
 }
 
-__global__ void SM_3x3_CF8_Vec(unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3_CF8_Vec(unsigned char* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
-	__shared__  unsigned char cache[34][258];
+	__shared__  imtype cache[34][258];
 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 8;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -1940,7 +1940,7 @@ __global__ void SM_3x3_CF8_Vec(unsigned char* __restrict__ input, unsigned char*
 		}
 		__syncthreads();
 		int vals[8] = { 0 };
-		unsigned char frame[3][3];
+		imtype frame[3][3];
 
 		frame[0][0] = cache[cx - 1][cy - 1];
 		frame[0][1] = cache[cx - 1][cy];
@@ -1960,7 +1960,7 @@ __global__ void SM_3x3_CF8_Vec(unsigned char* __restrict__ input, unsigned char*
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 8; i++) {
@@ -1980,7 +1980,7 @@ __global__ void SM_3x3_CF8_Vec(unsigned char* __restrict__ input, unsigned char*
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) >> 4;
+				+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
@@ -1988,9 +1988,9 @@ __global__ void SM_3x3_CF8_Vec(unsigned char* __restrict__ input, unsigned char*
 	}
 }
 
-__global__ void SM_3x3_CF4_Vec(unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3_CF4_Vec(unsigned char* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
-	__shared__  unsigned char cache[34][130];
+	__shared__  imtype cache[34][130];
 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 4;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -2028,7 +2028,7 @@ __global__ void SM_3x3_CF4_Vec(unsigned char* __restrict__ input, unsigned char*
 		}
 		__syncthreads();
 		int vals[4] = { 0 };
-		unsigned char frame[3][3];
+		imtype frame[3][3];
 
 		frame[0][0] = cache[cx - 1][cy - 1];
 		frame[0][1] = cache[cx - 1][cy];
@@ -2048,7 +2048,7 @@ __global__ void SM_3x3_CF4_Vec(unsigned char* __restrict__ input, unsigned char*
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 4; i++) {
@@ -2068,7 +2068,7 @@ __global__ void SM_3x3_CF4_Vec(unsigned char* __restrict__ input, unsigned char*
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) >> 4;
+				+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar4*>(&output[(tx * cols + ty)])[0] = make_uchar4(vals[0], vals[1], vals[2], vals[3]);
@@ -2076,9 +2076,9 @@ __global__ void SM_3x3_CF4_Vec(unsigned char* __restrict__ input, unsigned char*
 }
 
 
-__global__ void SM_3x3_CF2_Vec(unsigned char* __restrict__ input, unsigned char* __restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3_CF2_Vec(unsigned char* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
-	__shared__  unsigned char cache[34][66];
+	__shared__  imtype cache[34][66];
 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -2111,7 +2111,7 @@ __global__ void SM_3x3_CF2_Vec(unsigned char* __restrict__ input, unsigned char*
 		}
 		__syncthreads();
 		int vals[2] = { 0 };
-		unsigned char frame[3][3];
+		imtype frame[3][3];
 
 		frame[0][0] = cache[cx - 1][cy - 1];
 		frame[0][1] = cache[cx - 1][cy];
@@ -2131,7 +2131,7 @@ __global__ void SM_3x3_CF2_Vec(unsigned char* __restrict__ input, unsigned char*
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) >> 4;
+		+ GM_Filter[2][2] * frame[2][2]) / 16;
 
 		#pragma unroll
 		for (int i = 1; i < 2; i++) {
@@ -2151,23 +2151,29 @@ __global__ void SM_3x3_CF2_Vec(unsigned char* __restrict__ input, unsigned char*
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) >> 4;
+					+ GM_Filter[2][2] * frame[2][2]) / 16;
 			}
 		}
 		reinterpret_cast<uchar2*>(&output[(tx * cols + ty)])[0] = make_uchar2(vals[0], vals[1]);
 	}
 }
 
+/// @brief Sends both input (input_img) and output (output_img) to GPU 
+/// memory. Afterwards, executes specified kernel on input data then brings
+/// the output data back to CPU and cleans the memory address that belongs 
+/// to output data.
+/// @param input_img input image in OpenCV Format
+/// @param output_img output image in OpenCV Format
 void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 {
-	unsigned char* d_input = nullptr;
-	unsigned char* d_output = nullptr;
-	unsigned char* h_input = input_img->data;
-	unsigned char* h_output = output_img->data;
+	imtype* d_input = nullptr;
+	imtype* d_output = nullptr;
+	imtype* h_input = reinterpret_cast<imtype*>(input_img->data);
+	imtype* h_output = reinterpret_cast<imtype*>(output_img->data);
 
 	const int cols = (*input_img).cols;
 	const int rows = (*input_img).rows;
-	const int size = cols * rows * sizeof(unsigned char);
+	const int size = cols * rows * sizeof(imtype);
 
 	dim3 block(32,32);
 	dim3 grid((cols + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
@@ -2184,12 +2190,13 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	CHECK_CUDA_ERROR(cudaMemcpy(d_input, h_input, size, cudaMemcpyHostToDevice));
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	
-	#define BASE_KERNELS 0
-	#define COARSENED_KERNELS 0
+	#define BASE_KERNELS 1
+	#define COARSENED_KERNELS 1
 	#define VECTORIZED_KERNELS 0
 	#define NPP_KERNEL 0
 	#define CUDNN_KERNEL 0
-	#define ARRAYFIRE 1
+	#define ARRAYFIRE 0
+	#define OPENCV_CUDA 0
 
 	#if BASE_KERNELS
 	GM_3x3 << <grid, block >> > (d_input, d_output, rows, cols);
@@ -2428,19 +2435,32 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 
 	#if ARRAYFIRE
 	CHECK_ARRAYFIRE(af_init());
-	CHECK_ARRAYFIRE(af_set_backend(AF_BACKEND_CPU));
-	unsigned char h_kernel[9] = {1, 2, 1, 2, 4, 2, 1, 2, 1};
+	CHECK_ARRAYFIRE(af_set_backend(AF_BACKEND_CUDA));
+
+	af_backend active_backend;
+	af_get_active_backend(&active_backend);
+	if (active_backend != AF_BACKEND_CUDA) {
+		std::cerr << "CUDA backend aktif değil, mevcut backend: " << active_backend << std::endl;
+		abort();
+	}
+
+	float h_kernel[9] = {1, 2, 1, 2, 4, 2, 1, 2, 1};
+	for(int i = 0; i < 9; i++){
+		h_kernel[i] /= 16.0f;
+	}
 	dim_t dims_of_input[2] = {rows, cols};
 	dim_t dims_of_kernel[2] = {3, 3};
 
 	af_array af_input, af_kernel, af_output;
 	CHECK_ARRAYFIRE(af_create_array(&af_input, h_input, 2, dims_of_input, u8));
-	CHECK_ARRAYFIRE(af_create_array(&af_kernel, h_kernel, 2, dims_of_kernel, u8));
+	CHECK_ARRAYFIRE(af_create_array(&af_kernel, h_kernel, 2, dims_of_kernel, f32));
 	
 	CHECK_ARRAYFIRE(af_convolve2(&af_output, af_input, af_kernel, AF_CONV_DEFAULT, AF_CONV_AUTO));
 	CHECK_ARRAYFIRE(af_get_data_ptr(h_output, af_output));
 	cv::imwrite("../images/outputs/arrayFire.png", *output_img);
+	#endif
 
+	#if OPENCV_CUDA
 	
 	#endif
 
