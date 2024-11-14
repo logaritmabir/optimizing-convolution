@@ -2177,12 +2177,6 @@ void saveImage(const void* data, int rows, int cols, const std::string& filename
 #endif
 }
 
-/// @brief Sends both input (input_img) and output (output_img) to GPU 
-/// memory. Afterwards, executes specified kernel on input data then brings
-/// the output data back to CPU and cleans the memory address that belongs 
-/// to output data.
-/// @param input_img input image in OpenCV Format
-/// @param output_img output image in OpenCV Format
 void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 {
 	imtype* d_input = nullptr;
@@ -2209,13 +2203,13 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	CHECK_CUDA_ERROR(cudaMemcpy(d_input, h_input, size, cudaMemcpyHostToDevice));
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	
-	#define BASE_KERNELS 1
-	#define COARSENED_KERNELS 1
-	#define VECTORIZED_KERNELS 1
+	#define BASE_KERNELS 0
+	#define COARSENED_KERNELS 0
+	#define VECTORIZED_KERNELS 0
 	#define NPP_KERNEL 0
 	#define CUDNN_KERNEL 0
-	#define ARRAYFIRE 1
-	#define OPENCV_CUDA 0
+	#define ARRAYFIRE 0
+	#define OPENCV_CUDA 1
 
 	#if BASE_KERNELS
 	GM_3x3 << <grid, block >> > (d_input, d_output, rows, cols);
@@ -2398,25 +2392,29 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	
 	#endif
 
-	#if NPP_KERNEL
-	Npp32s step = cols * rows;
-	const Npp32s h_kernel[9] = {1,2,1,2,4,2,1,2,1};
-	Npp32s* d_kernel = NULL;
+	#if NPP_KERNEL && defined(IMTYPE_FLOAT)
+	{
+		Npp32s step = cols * rows;
+		const Npp32f h_kernel[9] = {1/16.0f, 2/16.0f, 1/16.0f,
+									2/16.0f, 4/16.0f, 2/16.0f,
+									1/16.0f, 2/16.0f, 1/16.0f};
+		Npp32f* d_kernel = NULL;
+		
+		CHECK_NPP_ERROR(nppiFilterGauss_32f_C1R(d_input, input_img->step, d_output, input_img->step, {cols, rows}, NPP_MASK_SIZE_3_X_3));
+		CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
+		saveImage(h_output, rows, cols, "../images/outputs/nppiFilterGauss_32f_C1R.png");
+		CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	nppiFilterGauss_8u_C1R(d_input, input_img->step, d_output, input_img->step, {cols, rows}, NPP_MASK_SIZE_3_X_3);
-	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/nppiFilterGauss_8u_C1R.png", *output_img);
-	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
-
-	CHECK_CUDA_ERROR(cudaMalloc(&d_kernel, sizeof(Npp32s) * 9));
-	CHECK_CUDA_ERROR(cudaMemcpy(d_kernel, h_kernel, sizeof(Npp32s) * 9, cudaMemcpyHostToDevice));
-	nppiFilter_8u_C1R(d_input, cols * sizeof(unsigned char), d_output, cols * sizeof(unsigned char), {cols, rows}, d_kernel, {3,3}, {1,1}, 16);
-	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/nppiFilter_8u_C1R.png", *output_img);
-	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+		CHECK_CUDA_ERROR(cudaMalloc(&d_kernel, sizeof(Npp32f) * 9));
+		CHECK_CUDA_ERROR(cudaMemcpy(d_kernel, h_kernel, sizeof(Npp32f) * 9, cudaMemcpyHostToDevice));
+		CHECK_NPP_ERROR(nppiFilter_32f_C1R(d_input, cols * sizeof(imtype), d_output, cols * sizeof(imtype), {cols, rows}, d_kernel, {3,3}, {1,1}));
+		CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
+		saveImage(h_output, rows, cols, "../images/outputs/nppiFilter_32f_C1R.png");
+		CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+	}
 	#endif
 
-	#if CUDNN_KERNEL
+	#if CUDNN_KERNEL && defined(IMTYPE_FLOAT)
 	cudnnHandle_t cudnn;
 	CHECK_CUDNN_ERROR(cudnnCreate(&cudnn));
 
@@ -2465,34 +2463,50 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	#endif
 
 	#if ARRAYFIRE && defined(IMTYPE_FLOAT) /*3rd parties only works on float datatype for now*/
-	CHECK_ARRAYFIRE(af_init());
-	CHECK_ARRAYFIRE(af_set_backend(AF_BACKEND_CUDA));
+	{
+		CHECK_ARRAYFIRE(af_init());
+		CHECK_ARRAYFIRE(af_set_backend(AF_BACKEND_CUDA));
 
-	af_backend active_backend;
-	af_get_active_backend(&active_backend);
-	if (active_backend != AF_BACKEND_CUDA) {
-		std::cerr << "CUDA backend is inactive.. abort()" << active_backend << std::endl;
-		abort();
+		af_backend active_backend;
+		af_get_active_backend(&active_backend);
+		if (active_backend != AF_BACKEND_CUDA) {
+			std::cerr << "CUDA backend is inactive.. abort()" << active_backend << std::endl;
+			abort();
+		}
+
+		imtype h_kernel[9] = {1/16.0f, 2/16.0f, 1/16.0f,
+							2/16.0f, 4/16.0f, 2/16.0f,
+							1/16.0f, 2/16.0f, 1/16.0f};
+		dim_t dims_of_input[2] = {rows, cols};
+		dim_t dims_of_kernel[2] = {3, 3};
+
+		af_array af_input, af_kernel, af_output;
+		CHECK_ARRAYFIRE(af_create_array(&af_input, h_input, 2, dims_of_input, f32));
+		CHECK_ARRAYFIRE(af_create_array(&af_kernel, h_kernel, 2, dims_of_kernel, f32));
+		CHECK_ARRAYFIRE(af_convolve2(&af_output, af_input, af_kernel, AF_CONV_DEFAULT, AF_CONV_AUTO));
+		CHECK_ARRAYFIRE(af_get_data_ptr(h_output, af_output));
+		saveImage(h_output, rows, cols, "../images/outputs/arrayFire.png");
 	}
-
-	imtype h_kernel[9] = {1, 2, 1, 2, 4, 2, 1, 2, 1};
-
-	dim_t dims_of_input[2] = {rows, cols};
-	dim_t dims_of_kernel[2] = {3, 3};
-
-	af_array af_input, af_kernel, af_output;
-	CHECK_ARRAYFIRE(af_create_array(&af_input, h_input, 2, dims_of_input, f32));
-	CHECK_ARRAYFIRE(af_create_array(&af_kernel, h_kernel, 2, dims_of_kernel, f32));
-	
-	CHECK_ARRAYFIRE(af_convolve2(&af_output, af_input, af_kernel, AF_CONV_DEFAULT, AF_CONV_AUTO));
-	CHECK_ARRAYFIRE(af_get_data_ptr(h_output, af_output));
-	cv::imwrite("../images/outputs/arrayFire.png", *output_img);
 	#endif
 
-	#if OPENCV_CUDA
-	
-	//cv::Ptr<cv::cuda::Convolution> convolution_ptr = cv::cuda::createConvolution(cv::Size(3,3));
-	// cv::Ptr<cv::cuda::Filter> gaussian_filter = cv::cuda::createGaussianFilter()
+	#if OPENCV_CUDA && defined(IMTYPE_FLOAT)
+	{
+		cv::cuda::GpuMat d_input, d_output;
+		d_input.upload(*input_img);
+		d_output.upload(*output_img);
+
+		cv::Mat h_kernel = (cv::Mat_<float>(3, 3) << 
+					1/16.0f, 2/16.0f, 1/16.0f,
+					2/16.0f, 4/16.0f, 2/16.0f,
+					1/16.0f, 2/16.0f, 1/16.0f);
+					
+		cv::Ptr<cv::cuda::Filter> gaussianFilter = cv::cuda::createLinearFilter(d_input.type(), d_output.type(), h_kernel);
+		gaussianFilter->apply(d_input, d_output);
+
+		cv::Mat blurred;
+    	d_output.download(blurred);
+		saveImage(blurred.data, rows, cols, "../images/outputs/openCV.png");
+	}
 	#endif
 
 	CHECK_CUDA_ERROR(cudaHostUnregister(h_input));
