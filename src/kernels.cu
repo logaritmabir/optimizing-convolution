@@ -34,7 +34,7 @@ __global__ void GM_3x3(const imtype* __restrict__ input, imtype* __restrict__ ou
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		int result = GM_Filter[0][0] * input[(tx - 1) * cols + ty - 1]
+		imtype result = GM_Filter[0][0] * input[(tx - 1) * cols + ty - 1]
 		           + GM_Filter[0][1] * input[(tx - 1) * cols + ty]
 		           + GM_Filter[0][2] * input[(tx - 1) * cols + ty + 1]
 		           + GM_Filter[1][0] * input[tx * cols + ty - 1]
@@ -2211,7 +2211,7 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	dim3 grid_cf4(((cols / 4) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
 	dim3 grid_cf8(((cols / 8) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
 	dim3 grid_cf12(((cols / 12) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-	dim3 grid_cf16(((cols) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+	dim3 grid_cf16(((cols / 16) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
 
 	CHECK_CUDA_ERROR(cudaHostRegister(h_output, size, cudaHostRegisterPortable));
 	CHECK_CUDA_ERROR(cudaHostRegister(h_input, size, cudaHostRegisterPortable));
@@ -2220,12 +2220,12 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	CHECK_CUDA_ERROR(cudaMemcpy(d_input, h_input, size, cudaMemcpyHostToDevice));
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	
-	#define BASE_KERNELS 0
-	#define COARSENED_KERNELS 0
-	#define VECTORIZED_KERNELS 0
-	#define NPP_KERNEL 0
+	#define BASE_KERNELS 1
+	#define COARSENED_KERNELS 1
+	#define VECTORIZED_KERNELS 1
+	#define NPP_KERNEL 1
 	#define CUDNN_KERNEL 0
-	#define ARRAYFIRE 0
+	#define ARRAYFIRE 1
 	#define OPENCV_CUDA 1
 
 	#if BASE_KERNELS
