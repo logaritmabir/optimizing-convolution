@@ -10,27 +10,44 @@ inline __device__ void shift_left(imtype arr[][3]) {
 	arr[2][1] = arr[2][2];
 }
 
-__constant__ imtype CM_Filter[3][3] =  {{1, 2, 1}, 
-										{2, 4, 2}, 
-										{1, 2, 1} };
+#ifdef IMTYPE_FLOAT
+__constant__ imtype CM_Filter[3][3] = {{1 / 16.0f, 2 / 16.0f, 1 / 16.0f},
+									   {2 / 16.0f, 4 / 16.0f, 2 / 16.0f},
+									   {1 / 16.0f, 2 / 16.0f, 1 / 16.0f}};
+__device__ imtype GM_Filter[3][3] = {{1 / 16.0f, 2 / 16.0f, 1 / 16.0f},
+									 {2 / 16.0f, 4 / 16.0f, 2 / 16.0f},
+									 {1 / 16.0f, 2 / 16.0f, 1 / 16.0f}};
+#endif
 
-__device__ imtype GM_Filter[3][3] = {{1, 2, 1}, 
+#ifdef IMTYPE_UCHAR
+__constant__ imtype GM_Filter[3][3] = {{1, 2, 1}, 
 									 {2, 4, 2}, 
 									 {1, 2, 1} };
+__device__ imtype GM_Filter[3][3] = {{1, 2, 1}, 
+									 {2, 4, 2}, 
+									 {1, 2, 1} };									 
+#endif
+
 
 __global__ void GM_3x3(const imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols){
 	int ty = blockIdx.x * blockDim.x + threadIdx.x;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		output[tx * cols + ty] = (GM_Filter[0][0] * input[(tx - 1) * cols + ty - 1]
-		 + GM_Filter[0][1] * input[(tx - 1) * cols + ty]
-		 + GM_Filter[0][2] * input[(tx - 1) * cols + ty + 1]
-		 + GM_Filter[1][0] * input[tx * cols + ty - 1]
-		 + GM_Filter[1][1] * input[tx * cols + ty]
-		 + GM_Filter[1][2] * input[tx * cols + ty + 1]
-		 + GM_Filter[2][0] * input[(tx + 1) * cols + ty - 1]
-		 + GM_Filter[2][1] * input[(tx + 1) * cols + ty]
-		 + GM_Filter[2][2] * input[(tx + 1) * cols + ty + 1]) / 16;
+		int result = GM_Filter[0][0] * input[(tx - 1) * cols + ty - 1]
+		           + GM_Filter[0][1] * input[(tx - 1) * cols + ty]
+		           + GM_Filter[0][2] * input[(tx - 1) * cols + ty + 1]
+		           + GM_Filter[1][0] * input[tx * cols + ty - 1]
+		           + GM_Filter[1][1] * input[tx * cols + ty]
+		           + GM_Filter[1][2] * input[tx * cols + ty + 1]
+		           + GM_Filter[2][0] * input[(tx + 1) * cols + ty - 1]
+		           + GM_Filter[2][1] * input[(tx + 1) * cols + ty]
+		           + GM_Filter[2][2] * input[(tx + 1) * cols + ty + 1];
+		#ifdef IMTYPE_UCHAR
+			output[tx * cols + ty] = result >> 4;
+		#else
+			output[tx * cols + ty] = result;
+		#endif
 	}
 }
 
@@ -48,7 +65,7 @@ __global__ void CM_3x3(const imtype* __restrict__ input, imtype* __restrict__ ou
 		+ CM_Filter[1][2] * input[tx * cols + ty + 1]
 		+ CM_Filter[2][0] * input[(tx + 1) * cols + ty - 1]
 		+ CM_Filter[2][1] * input[(tx + 1) * cols + ty]
-		+ CM_Filter[2][2] * input[(tx + 1) * cols + ty + 1]) / 16;
+		+ CM_Filter[2][2] * input[(tx + 1) * cols + ty + 1]);
 	}
 }
 
@@ -89,7 +106,7 @@ __global__ void SM_3x3(const imtype* __restrict__ input, imtype* __restrict__ ou
 		+ GM_Filter[1][2] * cache[cx][cy + 1]
 		+ GM_Filter[2][0] * cache[cx + 1][cy - 1]
 		+ GM_Filter[2][1] * cache[cx + 1][cy]
-		+ GM_Filter[2][2] * cache[cx + 1][cy + 1]) / 16;
+		+ GM_Filter[2][2] * cache[cx + 1][cy + 1]);
 	}
 }
 
@@ -119,7 +136,7 @@ __global__ void GM_3x3_CF16(const imtype* __restrict__ input, imtype* __restrict
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 16; i++) {
@@ -138,7 +155,7 @@ __global__ void GM_3x3_CF16(const imtype* __restrict__ input, imtype* __restrict
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) / 16;
+				+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -170,7 +187,7 @@ __global__ void GM_3x3_CF12(const imtype* __restrict__ input, imtype* __restrict
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 12; i++) {
@@ -189,7 +206,7 @@ __global__ void GM_3x3_CF12(const imtype* __restrict__ input, imtype* __restrict
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) / 16;
+				+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -221,7 +238,7 @@ __global__ void GM_3x3_CF8(const imtype* __restrict__ input, imtype* __restrict_
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 8; i++) {
@@ -240,7 +257,7 @@ __global__ void GM_3x3_CF8(const imtype* __restrict__ input, imtype* __restrict_
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) / 16;
+				+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -271,7 +288,7 @@ __global__ void GM_3x3_CF4(const imtype* __restrict__ input, imtype* __restrict_
 			+ GM_Filter[1][2] * frame[1][2]
 			+ GM_Filter[2][0] * frame[2][0]
 			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]) / 16;
+			+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 4; i++) {
@@ -290,7 +307,7 @@ __global__ void GM_3x3_CF4(const imtype* __restrict__ input, imtype* __restrict_
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) / 16;
+					+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -322,7 +339,7 @@ __global__ void GM_3x3_CF2(const imtype* __restrict__ input, imtype* __restrict_
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 2; i++) {
@@ -341,7 +358,7 @@ __global__ void GM_3x3_CF2(const imtype* __restrict__ input, imtype* __restrict_
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) / 16;
+					+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -373,7 +390,7 @@ __global__ void CM_3x3_CF16(const imtype* __restrict__ input, imtype* __restrict
 			+ CM_Filter[1][2] * frame[1][2]
 			+ CM_Filter[2][0] * frame[2][0]
 			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]) / 16;
+			+ CM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 16; i++) {
@@ -392,7 +409,7 @@ __global__ void CM_3x3_CF16(const imtype* __restrict__ input, imtype* __restrict
 					+ CM_Filter[1][2] * frame[1][2]
 					+ CM_Filter[2][0] * frame[2][0]
 					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]) / 16;
+					+ CM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -424,7 +441,7 @@ __global__ void CM_3x3_CF12(const imtype* __restrict__ input, imtype* __restrict
 			+ CM_Filter[1][2] * frame[1][2]
 			+ CM_Filter[2][0] * frame[2][0]
 			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]) / 16;
+			+ CM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 12; i++) {
@@ -443,7 +460,7 @@ __global__ void CM_3x3_CF12(const imtype* __restrict__ input, imtype* __restrict
 					+ CM_Filter[1][2] * frame[1][2]
 					+ CM_Filter[2][0] * frame[2][0]
 					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]) / 16;
+					+ CM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -474,7 +491,7 @@ __global__ void CM_3x3_CF8(const imtype* __restrict__ input, imtype* __restrict_
 			+ CM_Filter[1][2] * frame[1][2]
 			+ CM_Filter[2][0] * frame[2][0]
 			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]) / 16;
+			+ CM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 8; i++) {
@@ -493,7 +510,7 @@ __global__ void CM_3x3_CF8(const imtype* __restrict__ input, imtype* __restrict_
 					+ CM_Filter[1][2] * frame[1][2]
 					+ CM_Filter[2][0] * frame[2][0]
 					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]) / 16;
+					+ CM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -525,7 +542,7 @@ __global__ void CM_3x3_CF4(const imtype* __restrict__ input, imtype* __restrict_
 			+ CM_Filter[1][2] * frame[1][2]
 			+ CM_Filter[2][0] * frame[2][0]
 			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]) / 16;
+			+ CM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 4; i++) {
@@ -544,7 +561,7 @@ __global__ void CM_3x3_CF4(const imtype* __restrict__ input, imtype* __restrict_
 					+ CM_Filter[1][2] * frame[1][2]
 					+ CM_Filter[2][0] * frame[2][0]
 					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]) / 16;
+					+ CM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -576,7 +593,7 @@ __global__ void CM_3x3_CF2(const imtype* __restrict__ input, imtype* __restrict_
 			+ CM_Filter[1][2] * frame[1][2]
 			+ CM_Filter[2][0] * frame[2][0]
 			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]) / 16;
+			+ CM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 2; i++) {
@@ -595,7 +612,7 @@ __global__ void CM_3x3_CF2(const imtype* __restrict__ input, imtype* __restrict_
 					+ CM_Filter[1][2] * frame[1][2]
 					+ CM_Filter[2][0] * frame[2][0]
 					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]) / 16;
+					+ CM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -628,7 +645,7 @@ __global__ void GM_3x3_CF16_Vec(const imtype* __restrict__ input, imtype* __rest
 			+ GM_Filter[1][2] * frame[1][2]
 			+ GM_Filter[2][0] * frame[2][0]
 			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]) / 16;
+			+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 16; i++) {
@@ -647,7 +664,7 @@ __global__ void GM_3x3_CF16_Vec(const imtype* __restrict__ input, imtype* __rest
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) / 16;
+					+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype4*>(&output[(tx * cols + ty)])[0] = make_imtype4(vals[0], vals[1], vals[2], vals[3]);
@@ -684,7 +701,7 @@ __global__ void GM_3x3_CF12_Vec(const imtype* __restrict__ input, imtype* __rest
 			+ GM_Filter[1][2] * frame[1][2]
 			+ GM_Filter[2][0] * frame[2][0]
 			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]) / 16;
+			+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 12; i++) {
@@ -703,7 +720,7 @@ __global__ void GM_3x3_CF12_Vec(const imtype* __restrict__ input, imtype* __rest
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) / 16;
+					+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype4*>(&output[(tx * cols + ty)])[0] = make_imtype4(vals[0], vals[1], vals[2], vals[3]);
@@ -738,7 +755,7 @@ __global__ void GM_3x3_CF8_Vec(const imtype* __restrict__ input, imtype* __restr
 			+ GM_Filter[1][2] * frame[1][2]
 			+ GM_Filter[2][0] * frame[2][0]
 			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]) / 16;
+			+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 8; i++) {
@@ -757,7 +774,7 @@ __global__ void GM_3x3_CF8_Vec(const imtype* __restrict__ input, imtype* __restr
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) / 16;
+					+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype4*>(&output[(tx * cols + ty)])[0] = make_imtype4(vals[0], vals[1], vals[2], vals[3]);
@@ -793,7 +810,7 @@ __global__ void GM_3x3_CF4_Vec(const imtype* __restrict__ input, imtype* __restr
 			+ GM_Filter[1][2] * frame[1][2]
 			+ GM_Filter[2][0] * frame[2][0]
 			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]) / 16; 
+			+ GM_Filter[2][2] * frame[2][2]); 
 
 		#pragma unroll
 		for (int i = 1; i < 4; i++) {
@@ -812,7 +829,7 @@ __global__ void GM_3x3_CF4_Vec(const imtype* __restrict__ input, imtype* __restr
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) / 16;
+					+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype4*>(&output[(tx * cols + ty)])[0] = make_imtype4(vals[0], vals[1], vals[2], vals[3]);
@@ -847,7 +864,7 @@ __global__ void GM_3x3_CF2_Vec(const imtype* __restrict__ input, imtype* __restr
 			+ GM_Filter[1][2] * frame[1][2]
 			+ GM_Filter[2][0] * frame[2][0]
 			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]) / 16;
+			+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 2; i++) {
@@ -866,7 +883,7 @@ __global__ void GM_3x3_CF2_Vec(const imtype* __restrict__ input, imtype* __restr
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) / 16;
+					+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype2*>(&output[(tx * cols + ty)])[0] = make_imtype2(vals[0], vals[1]);
@@ -900,7 +917,7 @@ __global__ void CM_3x3_CF16_Vec(const imtype* __restrict__ input, imtype* __rest
 			+ CM_Filter[1][2] * frame[1][2]
 			+ CM_Filter[2][0] * frame[2][0]
 			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]) / 16;
+			+ CM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 16; i++) {
@@ -919,7 +936,7 @@ __global__ void CM_3x3_CF16_Vec(const imtype* __restrict__ input, imtype* __rest
 					+ CM_Filter[1][2] * frame[1][2]
 					+ CM_Filter[2][0] * frame[2][0]
 					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]) / 16;
+					+ CM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype4*>(&output[(tx * cols + ty)])[0] = make_imtype4(vals[0], vals[1], vals[2], vals[3]);
@@ -956,7 +973,7 @@ __global__ void CM_3x3_CF12_Vec(const imtype* __restrict__ input, imtype* __rest
 		+ CM_Filter[1][2] * frame[1][2]
 		+ CM_Filter[2][0] * frame[2][0]
 		+ CM_Filter[2][1] * frame[2][1]
-		+ CM_Filter[2][2] * frame[2][2]) / 16;
+		+ CM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 12; i++) {
@@ -975,7 +992,7 @@ __global__ void CM_3x3_CF12_Vec(const imtype* __restrict__ input, imtype* __rest
 				+ CM_Filter[1][2] * frame[1][2]
 				+ CM_Filter[2][0] * frame[2][0]
 				+ CM_Filter[2][1] * frame[2][1]
-				+ CM_Filter[2][2] * frame[2][2]) / 16;
+				+ CM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype4*>(&output[(tx * cols + ty)])[0] = make_imtype4(vals[0], vals[1], vals[2], vals[3]);
@@ -1010,7 +1027,7 @@ __global__ void CM_3x3_CF8_Vec(const imtype* __restrict__ input, imtype* __restr
 		+ CM_Filter[1][2] * frame[1][2]
 		+ CM_Filter[2][0] * frame[2][0]
 		+ CM_Filter[2][1] * frame[2][1]
-		+ CM_Filter[2][2] * frame[2][2]) / 16;
+		+ CM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 8; i++) {
@@ -1029,7 +1046,7 @@ __global__ void CM_3x3_CF8_Vec(const imtype* __restrict__ input, imtype* __restr
 				+ CM_Filter[1][2] * frame[1][2]
 				+ CM_Filter[2][0] * frame[2][0]
 				+ CM_Filter[2][1] * frame[2][1]
-				+ CM_Filter[2][2] * frame[2][2]) / 16;
+				+ CM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype4*>(&output[(tx * cols + ty)])[0] = make_imtype4(vals[0], vals[1], vals[2], vals[3]);
@@ -1064,7 +1081,7 @@ __global__ void CM_3x3_CF4_Vec(const imtype* __restrict__ input, imtype* __restr
 		+ CM_Filter[1][2] * frame[1][2]
 		+ CM_Filter[2][0] * frame[2][0]
 		+ CM_Filter[2][1] * frame[2][1]
-		+ CM_Filter[2][2] * frame[2][2]) / 16;
+		+ CM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 4; i++) {
@@ -1083,7 +1100,7 @@ __global__ void CM_3x3_CF4_Vec(const imtype* __restrict__ input, imtype* __restr
 				+ CM_Filter[1][2] * frame[1][2]
 				+ CM_Filter[2][0] * frame[2][0]
 				+ CM_Filter[2][1] * frame[2][1]
-				+ CM_Filter[2][2] * frame[2][2]) / 16;
+				+ CM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype4*>(&output[(tx * cols + ty)])[0] = make_imtype4(vals[0], vals[1], vals[2], vals[3]);
@@ -1117,7 +1134,7 @@ __global__ void CM_3x3_CF2_Vec(const imtype* __restrict__ input, imtype* __restr
 		+ CM_Filter[1][2] * frame[1][2]
 		+ CM_Filter[2][0] * frame[2][0]
 		+ CM_Filter[2][1] * frame[2][1]
-		+ CM_Filter[2][2] * frame[2][2]) / 16;
+		+ CM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 2; i++) {
@@ -1136,7 +1153,7 @@ __global__ void CM_3x3_CF2_Vec(const imtype* __restrict__ input, imtype* __restr
 				+ CM_Filter[1][2] * frame[1][2]
 				+ CM_Filter[2][0] * frame[2][0]
 				+ CM_Filter[2][1] * frame[2][1]
-				+ CM_Filter[2][2] * frame[2][2]) / 16;
+				+ CM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype2*>(&output[(tx * cols + ty)])[0] = make_imtype2(vals[0], vals[1]);
@@ -1236,7 +1253,7 @@ __global__ void SM_3x3_CF16(const imtype* __restrict__ input, imtype* __restrict
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 16; i++) {
@@ -1256,7 +1273,7 @@ __global__ void SM_3x3_CF16(const imtype* __restrict__ input, imtype* __restrict
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) / 16;
+				+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -1374,7 +1391,7 @@ __global__ void SM_3x3_CF16_Vec(unsigned char* __restrict__ input, imtype* __res
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 16; i++) {
@@ -1394,7 +1411,7 @@ __global__ void SM_3x3_CF16_Vec(unsigned char* __restrict__ input, imtype* __res
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) / 16;
+				+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype4*>(&output[(tx * cols + ty)])[0] = make_imtype4(vals[0], vals[1], vals[2], vals[3]);
@@ -1487,7 +1504,7 @@ __global__ void SM_3x3_CF12(const imtype* __restrict__ input, imtype *__restrict
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 12; i++) {
@@ -1507,7 +1524,7 @@ __global__ void SM_3x3_CF12(const imtype* __restrict__ input, imtype *__restrict
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) / 16;
+				+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -1607,7 +1624,7 @@ __global__ void SM_3x3_CF12_Vec(unsigned char* __restrict__ input, imtype* __res
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2] / 16);
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 12; i++) {
@@ -1627,7 +1644,7 @@ __global__ void SM_3x3_CF12_Vec(unsigned char* __restrict__ input, imtype* __res
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) / 16;
+				+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype4*>(&output[(tx * cols + ty)])[0] = make_imtype4(vals[0], vals[1], vals[2], vals[3]);
@@ -1705,7 +1722,7 @@ __global__ void SM_3x3_CF8(const imtype* __restrict__ input, imtype* __restrict_
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 8; i++) {
@@ -1725,7 +1742,7 @@ __global__ void SM_3x3_CF8(const imtype* __restrict__ input, imtype* __restrict_
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) / 16;
+				+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -1807,7 +1824,7 @@ __global__ void SM_3x3_CF8_Vec(imtype* __restrict__ input, imtype* __restrict__ 
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 8; i++) {
@@ -1827,7 +1844,7 @@ __global__ void SM_3x3_CF8_Vec(imtype* __restrict__ input, imtype* __restrict__ 
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) / 16;
+				+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype4*>(&output[(tx * cols + ty)])[0] = make_imtype4(vals[0], vals[1], vals[2], vals[3]);
@@ -1893,7 +1910,7 @@ __global__ void SM_3x3_CF4(const imtype* __restrict__ input, imtype* __restrict_
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 4; i++) {
@@ -1913,7 +1930,7 @@ __global__ void SM_3x3_CF4(const imtype* __restrict__ input, imtype* __restrict_
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) / 16;
+				+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -1978,7 +1995,7 @@ __global__ void SM_3x3_CF4_Vec(imtype* __restrict__ input, imtype* __restrict__ 
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 4; i++) {
@@ -1998,7 +2015,7 @@ __global__ void SM_3x3_CF4_Vec(imtype* __restrict__ input, imtype* __restrict__ 
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) / 16;
+				+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype4*>(&output[(tx * cols + ty)])[0] = make_imtype4(vals[0], vals[1], vals[2], vals[3]);
@@ -2057,7 +2074,7 @@ __global__ void SM_3x3_CF2(const imtype* __restrict__ input, imtype* __restrict_
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 2; i++) {
@@ -2077,7 +2094,7 @@ __global__ void SM_3x3_CF2(const imtype* __restrict__ input, imtype* __restrict_
 				+ GM_Filter[1][2] * frame[1][2]
 				+ GM_Filter[2][0] * frame[2][0]
 				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]) / 16;
+				+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -2137,7 +2154,7 @@ __global__ void SM_3x3_CF2_Vec(imtype* __restrict__ input, imtype* __restrict__ 
 		+ GM_Filter[1][2] * frame[1][2]
 		+ GM_Filter[2][0] * frame[2][0]
 		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]) / 16;
+		+ GM_Filter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < 2; i++) {
@@ -2157,7 +2174,7 @@ __global__ void SM_3x3_CF2_Vec(imtype* __restrict__ input, imtype* __restrict__ 
 					+ GM_Filter[1][2] * frame[1][2]
 					+ GM_Filter[2][0] * frame[2][0]
 					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]) / 16;
+					+ GM_Filter[2][2] * frame[2][2]);
 			}
 		}
 		reinterpret_cast<imtype2*>(&output[(tx * cols + ty)])[0] = make_imtype2(vals[0], vals[1]);
@@ -2194,7 +2211,7 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	dim3 grid_cf4(((cols / 4) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
 	dim3 grid_cf8(((cols / 8) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
 	dim3 grid_cf12(((cols / 12) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-	dim3 grid_cf16(((cols / 16) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+	dim3 grid_cf16(((cols) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
 
 	CHECK_CUDA_ERROR(cudaHostRegister(h_output, size, cudaHostRegisterPortable));
 	CHECK_CUDA_ERROR(cudaHostRegister(h_input, size, cudaHostRegisterPortable));
@@ -2499,7 +2516,7 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 					1/16.0f, 2/16.0f, 1/16.0f,
 					2/16.0f, 4/16.0f, 2/16.0f,
 					1/16.0f, 2/16.0f, 1/16.0f);
-					
+
 		cv::Ptr<cv::cuda::Filter> gaussianFilter = cv::cuda::createLinearFilter(d_input.type(), d_output.type(), h_kernel);
 		gaussianFilter->apply(d_input, d_output);
 
