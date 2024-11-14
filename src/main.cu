@@ -14,7 +14,7 @@ int main(int argc, char** argv)
 
     for (cv::Mat& image : input_8UC1) {
         cv::Mat buffer;
-        image.convertTo(buffer, CV_16FC1, 1.0 / 255.0);
+        image.convertTo(buffer, CV_32FC1, 1.0 / 255.0);
         input_32FC1.push_back(buffer);
     }
 
@@ -26,9 +26,8 @@ int main(int argc, char** argv)
         output_32FC1.push_back(input_32FC1.at(i).clone());
     }
 
-    for(int i = 0; i < input_8UC1.size(); i++){
-        launch_kernels(&input_8UC1.at(i), &output_8UC1.at(i));
+    for(int i = 0; i < input_32FC1.size(); i++){
+        launch_kernels(&input_32FC1.at(i), &output_32FC1.at(i));
     }
-
     return 0;
 }
