@@ -2165,6 +2165,18 @@ __global__ void SM_3x3_CF2_Vec(imtype* __restrict__ input, imtype* __restrict__ 
 }
 #endif
 
+void saveImage(const void* data, int rows, int cols, const std::string& filename) {
+    cv::Mat image(rows, cols, IMAGE_TYPE, const_cast<void*>(data));
+
+#ifdef IMTYPE_FLOAT
+    cv::Mat output_image;
+    cv::normalize(image, output_image, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+    cv::imwrite(filename, output_image);
+#else
+    cv::imwrite(filename, image);
+#endif
+}
+
 /// @brief Sends both input (input_img) and output (output_img) to GPU 
 /// memory. Afterwards, executes specified kernel on input data then brings
 /// the output data back to CPU and cleans the memory address that belongs 
@@ -2198,8 +2210,8 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	
 	#define BASE_KERNELS 1
-	#define COARSENED_KERNELS 0
-	#define VECTORIZED_KERNELS 0
+	#define COARSENED_KERNELS 1
+	#define VECTORIZED_KERNELS 1
 	#define NPP_KERNEL 0
 	#define CUDNN_KERNEL 0
 	#define ARRAYFIRE 1
@@ -2208,95 +2220,97 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	#if BASE_KERNELS
 	GM_3x3 << <grid, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/GM_3x3.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	CM_3x3 << <grid, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/CM_3x3.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	SM_3x3 << <grid, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/SM_3x3.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	#endif
 
 	#if COARSENED_KERNELS
 	GM_3x3_CF2 << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/GM_3x3_CF2.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF2.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	GM_3x3_CF4 << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/GM_3x3_CF4.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF4.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	GM_3x3_CF8 << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/GM_3x3_CF8.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF8.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	GM_3x3_CF12 << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/GM_3x3_CF12.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF12.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	GM_3x3_CF16 << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/GM_3x3_CF16.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF16.png");
+	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	CM_3x3_CF2 << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/CM_3x3_CF2.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF2.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	CM_3x3_CF4 << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/CM_3x3_CF4.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF4.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	CM_3x3_CF8 << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/CM_3x3_CF8.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF8.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	CM_3x3_CF12 << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/CM_3x3_CF12.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF12.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	CM_3x3_CF16 << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/CM_3x3_CF16.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF16.png");
+	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	SM_3x3_CF2 << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/SM_3x3_CF2.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF2.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	SM_3x3_CF4 << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/SM_3x3_CF4.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF4.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	SM_3x3_CF8 << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/SM_3x3_CF8.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF8.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	#if !defined(INSUFFICIENT_MEMORY_FOR_CF12)
 	SM_3x3_CF12 << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/SM_3x3_CF12.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF12.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	#endif
 
 	#if !defined(INSUFFICIENT_MEMORY_FOR_CF16)
 	SM_3x3_CF16 << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/SM_3x3_CF16.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF16.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	#endif
 	
@@ -2305,80 +2319,80 @@ void launch_kernels(cv::Mat* input_img, cv::Mat* output_img)
 	#if VECTORIZED_KERNELS
 	GM_3x3_CF2_Vec << <grid_cf2, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/GM_3x3_CF2_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF2_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	GM_3x3_CF4_Vec << <grid_cf4, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/GM_3x3_CF4_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF4_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	GM_3x3_CF8_Vec << <grid_cf8, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/GM_3x3_CF8_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF8_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	GM_3x3_CF12_Vec << <grid_cf12, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/GM_3x3_CF12_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF12_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	GM_3x3_CF16_Vec << <grid_cf16, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/GM_3x3_CF16_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF16_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	CM_3x3_CF2_Vec << <grid_cf2, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/CM_3x3_CF2_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF2_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	CM_3x3_CF4_Vec << <grid_cf4, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/CM_3x3_CF4_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF4_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	CM_3x3_CF8_Vec << <grid_cf8, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/CM_3x3_CF8_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF8_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	CM_3x3_CF12_Vec << <grid_cf12, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/CM_3x3_CF12_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF12_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	CM_3x3_CF16_Vec << <grid_cf16, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/CM_3x3_CF16_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF16_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	SM_3x3_CF2_Vec << <grid_cf2, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/SM_3x3_CF2_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF2_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	SM_3x3_CF4_Vec << <grid_cf4, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/SM_3x3_CF4_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF4_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	SM_3x3_CF8_Vec << <grid_cf8, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/SM_3x3_CF8_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF8_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	#if !defined(INSUFFICIENT_MEMORY_FOR_CF12)
 	SM_3x3_CF12_Vec << <grid_cf12, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/SM_3x3_CF12_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF12_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	#endif
 
 	#if !defined(INSUFFICIENT_MEMORY_FOR_CF16)
 	SM_3x3_CF16_Vec << <grid_cf16, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
-	cv::imwrite("../images/outputs/SM_3x3_CF16_V.png", *output_img);
+	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF16_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	#endif
 	

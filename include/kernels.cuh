@@ -27,6 +27,7 @@
 
 #if defined(IMTYPE_FLOAT)
     #define IMTYPE_SIZE 4
+    #define IMAGE_TYPE CV_32FC1
     typedef float imtype;
     typedef float4 imtype4;
     typedef float2 imtype2;
@@ -34,6 +35,7 @@
     #define make_imtype4 make_float4
 #elif defined(IMTYPE_UCHAR)
     #define IMTYPE_SIZE 1
+    #define IMAGE_TYPE CV_8UC1
     typedef unsigned char imtype;
     typedef uchar4 imtype4;
     typedef uchar2 imtype2;
