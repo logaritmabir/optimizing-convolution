@@ -26,8 +26,14 @@ int main(int argc, char** argv)
         output_32FC1.push_back(input_32FC1.at(i).clone());
     }
 
-    for(int i = 0; i < input_32FC1.size(); i++){
-        launch_kernels(&input_32FC1.at(i), &output_32FC1.at(i));
-    }
+    #ifdef IMTYPE_FLOAT
+        for(int i = 0; i < input_32FC1.size(); i++){
+            launch_kernels(&input_32FC1.at(i), &output_32FC1.at(i));
+        }
+    #elif defined(IMTYPE_UCHAR)
+        for(int i = 0; i < input_32FC1.size(); i++){
+            test_outputs(&input_8UC1.at(i), &output_8UC1.at(i));
+        }
+    #endif
     return 0;
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cuda-libs.cuh"
+
 #ifndef __CUDACC__  
 #define __CUDACC__
 #endif

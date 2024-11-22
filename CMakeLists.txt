@@ -20,12 +20,15 @@ include_directories(${ArrayFire_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 set(CUDA_FILES
+    src/main.cu
     src/kernels.cu
 )
 
 set(CUDA_HEADERS
     include/utils.cuh
     include/kernels.cuh
+    include/opencv-libs.cuh
+    include/cuda-libs.cuh
 )
 
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3 -arch=sm_75 --expt-relaxed-constexpr -lineinfo")
@@ -33,7 +36,6 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3 -arch=sm_75 --expt-relaxed-constex
 add_executable(${PROJECT_NAME}
     ${CUDA_FILES}
     ${CUDA_HEADERS}
-    src/main.cu
 )
 
 target_link_libraries(

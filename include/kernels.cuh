@@ -2,28 +2,15 @@
 
 #include <stdint.h>
 #include <stdio.h>
-
-#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-#include <cuda.h>
-#include <npp.h>
-#include <cudnn.h>
-
 #include <arrayfire.h>
 
-#include <opencv2/cudafilters.hpp>
-#include <opencv2/cudaimgproc.hpp>
-#include <opencv2/cudaarithm.hpp>
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/core/utils/logger.hpp>
-#include <opencv2/opencv.hpp>
+#include "cuda-libs.cuh"
+#include "opencv-libs.cuh"
+#include "utils.cuh"
 
 #define MAX_SM_SIZE 49152
 
-#define IMTYPE_FLOAT
+#define IMTYPE_UCHAR
 
 #if defined(IMTYPE_FLOAT)
     #define IMTYPE_SIZE 4
@@ -44,6 +31,19 @@
 #else
     #error "Invalid image type."
 #endif
+
+namespace kernels{
+    typedef enum {
+    GM_3x3, CM_3x3, SM_3x3,
+    GM_3x3_CF2, GM_3x3_CF4, GM_3x3_CF8, GM_3x3_CF12, GM_3x3_CF16,
+    CM_3x3_CF2, CM_3x3_CF4, CM_3x3_CF8, CM_3x3_CF12, CM_3x3_CF16,
+    SM_3x3_CF2, SM_3x3_CF4, SM_3x3_CF8, SM_3x3_CF12, SM_3x3_CF16,
+    GM_3x3_CF2_Vec, GM_3x3_CF4_Vec, GM_3x3_CF8_Vec, GM_3x3_CF12_Vec, GM_3x3_CF16_Vec,
+    CM_3x3_CF2_Vec, CM_3x3_CF4_Vec, CM_3x3_CF8_Vec, CM_3x3_CF12_Vec, CM_3x3_CF16_Vec,
+    SM_3x3_CF2_Vec, SM_3x3_CF4_Vec, SM_3x3_CF8_Vec, SM_3x3_CF12_Vec, SM_3x3_CF16_Vec,
+    ArrayFire, cuDNN, NPP, OpenCV
+    }kernel;
+}
 
 #define SM_REQUIRED_FOR_CF2 (34 * IMTYPE_SIZE * 66)
 #define SM_REQUIRED_FOR_CF4 (34 * IMTYPE_SIZE * 130)
@@ -72,6 +72,5 @@
 #endif
 
 void launch_kernels(cv::Mat* input_img, cv::Mat* output_img);
-
-
-
+void test_outputs(cv::Mat* input_img, cv::Mat* output_img);
+void call_kernel(cv::Mat* input_img, cv::Mat* output_img, kernels::kernel func);
