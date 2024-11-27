@@ -1,6 +1,6 @@
 #include "kernels.cuh"
 
-#define BLOCKDIMX 8
+#define BLOCKDIMX 16
 #define BLOCKDIMY 16
 
 inline __device__ void shift_left(imtype arr[][3]) {
@@ -2213,8 +2213,8 @@ void test_outputs(cv::Mat* input_img, cv::Mat* output_img)
 	#define VECTORIZED_KERNELS 1
 	#define NPP_KERNEL 0
 	#define CUDNN_KERNEL 0
-	#define ARRAYFIRE 0
-	#define OPENCV_CUDA 0
+	#define ARRAYFIRE 1
+	#define OPENCV_CUDA 1
 
 	#if BASE_KERNELS
 	GM_3x3 << <grid, block >> > (d_input, d_output, rows, cols);
@@ -2694,12 +2694,9 @@ void call_kernel(cv::Mat* input_img, cv::Mat* output_img, kernels::kernel func){
 			CHECK_ARRAYFIRE(af_create_array(&af_input, h_input, 2, dims_of_input, f32));
 			CHECK_ARRAYFIRE(af_create_array(&af_kernel, h_kernel, 2, dims_of_kernel, f32));			
 			#elif defined(IMTYPE_UCHAR)
-			float h_kernel[9] = {1/16.0f, 2/16.0f, 1/16.0f,
-				2/16.0f, 4/16.0f, 2/16.0f,
-				1/16.0f, 2/16.0f, 1/16.0f};
-			CHECK_ARRAYFIRE(af_create_array(&af_input, h_input, 2, dims_of_input, u8));
-			CHECK_ARRAYFIRE(af_create_array(&af_kernel, h_kernel, 2, dims_of_kernel, f32));		
+			CHECK_ARRAYFIRE(af_create_array(&af_input, h_input, 2, dims_of_input, u8));	
 			#endif
+			CHECK_ARRAYFIRE(af_gaussian_kernel(&af_kernel, 3, 3, 0, 0));
 			CHECK_ARRAYFIRE(af_convolve2(&af_output, af_input, af_kernel, AF_CONV_DEFAULT, AF_CONV_AUTO));
 			CHECK_ARRAYFIRE(af_get_data_ptr(h_output, af_output));
 		}
@@ -2746,40 +2743,36 @@ void call_kernel(cv::Mat* input_img, cv::Mat* output_img, kernels::kernel func){
 
 
 void launch_kernels(cv::Mat* input_img, cv::Mat* output_img){
-	call_kernel(input_img, output_img, kernels::kernel::GM_3x3);
-	call_kernel(input_img, output_img, kernels::kernel::CM_3x3);
-	call_kernel(input_img, output_img, kernels::kernel::SM_3x3);
+	// call_kernel(input_img, output_img, kernels::kernel::GM_3x3);
+	// call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF2);
+	// call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF4);
+	// call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF8);
+	// call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF12);
+	// call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF16);
+	// call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF2_Vec);
+	// call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF4_Vec);
+	// call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF8_Vec);
+	// call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF12_Vec);
+	// call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF16_Vec);
 
-	call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF2);
-	call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF4);
-	call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF8);
-	call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF12);
-	call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF16);
+	// call_kernel(input_img, output_img, kernels::kernel::CM_3x3);
+	// call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF2);
+	// call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF4);
+	// call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF8);
+	// call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF12);
+	// call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF16);
+	// call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF2_Vec);
+	// call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF4_Vec);
+	// call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF8_Vec);
+	// call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF12_Vec);
+	// call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF16_Vec);
 
-	call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF2);
-	call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF4);
-	call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF8);
-	call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF12);
-	call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF16);
-
+	// call_kernel(input_img, output_img, kernels::kernel::SM_3x3);
 	// call_kernel(input_img, output_img, kernels::kernel::SM_3x3_CF2);
 	// call_kernel(input_img, output_img, kernels::kernel::SM_3x3_CF4);
 	// call_kernel(input_img, output_img, kernels::kernel::SM_3x3_CF8);
 	// call_kernel(input_img, output_img, kernels::kernel::SM_3x3_CF12);
 	// call_kernel(input_img, output_img, kernels::kernel::SM_3x3_CF16);
-
-	call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF2_Vec);
-	call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF4_Vec);
-	call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF8_Vec);
-	call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF12_Vec);
-	call_kernel(input_img, output_img, kernels::kernel::GM_3x3_CF16_Vec);
-
-	call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF2_Vec);
-	call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF4_Vec);
-	call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF8_Vec);
-	call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF12_Vec);
-	call_kernel(input_img, output_img, kernels::kernel::CM_3x3_CF16_Vec);
-
 	// call_kernel(input_img, output_img, kernels::kernel::SM_3x3_CF2_Vec);
 	// call_kernel(input_img, output_img, kernels::kernel::SM_3x3_CF4_Vec);
 	// call_kernel(input_img, output_img, kernels::kernel::SM_3x3_CF8_Vec);
