@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 
     std::vector<cv::Mat> input_8UC1;
     std::vector<cv::Mat> input_32FC1;
-    input_8UC1.push_back(cv::imread(img_path8192, cv::IMREAD_GRAYSCALE));
+    input_8UC1.push_back(cv::imread(img_path4096, cv::IMREAD_GRAYSCALE));
 
     for (cv::Mat& image : input_8UC1) {
         cv::Mat buffer;
@@ -31,8 +31,8 @@ int main(int argc, char** argv)
             launch_kernels(&input_32FC1.at(i), &output_32FC1.at(i));
         }
     #elif defined(IMTYPE_UCHAR)
-        for(int i = 0; i < input_32FC1.size(); i++){
-            launch_kernels(&input_8UC1.at(i), &output_8UC1.at(i));
+        for(int i = 0; i < input_8UC1.size(); i++){
+            test_outputs(&input_8UC1.at(i), &output_8UC1.at(i));
         }
     #endif
     return 0;

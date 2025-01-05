@@ -5,15 +5,23 @@ set(CMAKE_CUDA_ARCHITECTURES 75)
 
 enable_language(CUDA)
 
+set(CUDA_TOOLKIT_ROOT_DIR "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6")
 set(ArrayFire_DIR "C:/Program Files/ArrayFire/v3/cmake")
-set(CUDNN_INCLUDE_DIR "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.3/include")
-set(OpenCV_DIR "C:/Users/ben/Desktop/opencv-source/opencv/build/install")
+set(OpenCV_DIR "C:/Users/steam/Desktop/opencv/install")
 
 find_package(CUDAToolkit REQUIRED)
 find_package(ArrayFire REQUIRED)
 find_package(OpenCV REQUIRED)
 
-include_directories(${CUDNN_INCLUDE_DIR})
+if (NOT ArrayFire_FOUND)
+    message(FATAL_ERROR "ArrayFire library not found!")
+else()
+    message(STATUS "ArrayFire found at: ${ArrayFire_DIR}")
+    message(STATUS "ArrayFire Include Dirs: ${ArrayFire_INCLUDE_DIRS}")
+    message(STATUS "ArrayFire Libraries: ${ArrayFire_LIBRARIES}")
+endif()
+
+include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${ArrayFire_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/include)

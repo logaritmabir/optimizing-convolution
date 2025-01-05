@@ -32,8 +32,7 @@
     #error "Invalid image type."
 #endif
 
-namespace kernels{
-    typedef enum {
+enum class KernelType {
     GM_3x3, CM_3x3, SM_3x3,
     GM_3x3_CF2, GM_3x3_CF4, GM_3x3_CF8, GM_3x3_CF12, GM_3x3_CF16,
     CM_3x3_CF2, CM_3x3_CF4, CM_3x3_CF8, CM_3x3_CF12, CM_3x3_CF16,
@@ -42,8 +41,7 @@ namespace kernels{
     CM_3x3_CF2_Vec, CM_3x3_CF4_Vec, CM_3x3_CF8_Vec, CM_3x3_CF12_Vec, CM_3x3_CF16_Vec,
     SM_3x3_CF2_Vec, SM_3x3_CF4_Vec, SM_3x3_CF8_Vec, SM_3x3_CF12_Vec, SM_3x3_CF16_Vec,
     ArrayFire, cuDNN, NPP, OpenCV
-    }kernel;
-}
+};
 
 #define SM_REQUIRED_FOR_CF2 (34 * IMTYPE_SIZE * 66)
 #define SM_REQUIRED_FOR_CF4 (34 * IMTYPE_SIZE * 130)
@@ -73,4 +71,4 @@ namespace kernels{
 
 void launch_kernels(cv::Mat* input_img, cv::Mat* output_img);
 void test_outputs(cv::Mat* input_img, cv::Mat* output_img);
-void call_kernel(cv::Mat* input_img, cv::Mat* output_img, kernels::kernel func);
+void call_kernel(cv::Mat* input_img, cv::Mat* output_img, KernelType func);
