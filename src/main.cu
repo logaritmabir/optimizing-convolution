@@ -32,7 +32,7 @@ int main(int argc, char** argv)
         }
     #elif defined(IMTYPE_UCHAR)
         for(int i = 0; i < input_8UC1.size(); i++){
-            test_outputs(&input_8UC1.at(i), &output_8UC1.at(i));
+            launch_kernels(&input_8UC1.at(i), &output_8UC1.at(i));
         }
     #endif
     return 0;

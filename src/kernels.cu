@@ -20,7 +20,7 @@ __device__ float GM_Filter[3][3] = {{1 / 16.0f, 2 / 16.0f, 1 / 16.0f},
 									 {1 / 16.0f, 2 / 16.0f, 1 / 16.0f}};
 
 template<int COARSENING_FACTOR>
-__global__ void GM_3x3_Template(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols) {
+__global__ void GM_3x3(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols) {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * COARSENING_FACTOR;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -70,14 +70,14 @@ __global__ void GM_3x3_Template(imtype* __restrict__ input, imtype* __restrict__
 	}
 }
 
-template __global__ void GM_3x3_Template<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void GM_3x3_Template<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void GM_3x3_Template<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void GM_3x3_Template<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void GM_3x3_Template<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 
 template<int COARSENING_FACTOR>
-__global__ void CM_3x3_Template(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols) {
+__global__ void CM_3x3(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols) {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * COARSENING_FACTOR;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -127,14 +127,14 @@ __global__ void CM_3x3_Template(imtype* __restrict__ input, imtype* __restrict__
 	}
 }
 
-template __global__ void CM_3x3_Template<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void CM_3x3_Template<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void CM_3x3_Template<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void CM_3x3_Template<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void CM_3x3_Template<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 
 template<int COARSENING_FACTOR>
-__global__ void GM_3x3_CF_Vec(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
+__global__ void GM_3x3_Vec(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * COARSENING_FACTOR;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -189,14 +189,14 @@ __global__ void GM_3x3_CF_Vec(imtype* __restrict__ input, imtype* __restrict__ o
 	}
 }
 
-template __global__ void GM_3x3_CF_Vec<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void GM_3x3_CF_Vec<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void GM_3x3_CF_Vec<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void GM_3x3_CF_Vec<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void GM_3x3_CF_Vec<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3_Vec<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3_Vec<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3_Vec<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3_Vec<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3_Vec<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 
 template<int COARSENING_FACTOR>
-__global__ void CM_3x3_CF_Vec(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
+__global__ void CM_3x3_Vec(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * COARSENING_FACTOR;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -251,16 +251,16 @@ __global__ void CM_3x3_CF_Vec(imtype* __restrict__ input, imtype* __restrict__ o
 	}
 }
 
-template __global__ void CM_3x3_CF_Vec<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void CM_3x3_CF_Vec<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void CM_3x3_CF_Vec<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void CM_3x3_CF_Vec<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void CM_3x3_CF_Vec<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3_Vec<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3_Vec<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3_Vec<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3_Vec<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3_Vec<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 
 
 #if !defined(INSUFFICIENT_MEMORY_FOR_CF16)
 template<int COARSENING_FACTOR>
-__global__ void SM_3x3_Template(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	__shared__ imtype cache[BLOCKDIMY + 2][BLOCKDIMX * COARSENING_FACTOR + 2];
 
@@ -343,7 +343,7 @@ __global__ void SM_3x3_Template(imtype* __restrict__ input, imtype* __restrict__
 }
 
 template<int COARSENING_FACTOR>
-__global__ void SM_3x3_CF_Vec_Template(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
+__global__ void SM_3x3_Vec(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
 	__shared__ imtype cache[BLOCKDIMY + 2][BLOCKDIMX * COARSENING_FACTOR + 2];
 
@@ -467,17 +467,17 @@ __global__ void SM_3x3_CF_Vec_Template(imtype* __restrict__ input, imtype* __res
 	}
 }
 
-template __global__ void SM_3x3_Template<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void SM_3x3_Template<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void SM_3x3_Template<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void SM_3x3_Template<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void SM_3x3_Template<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void SM_3x3<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void SM_3x3<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void SM_3x3<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void SM_3x3<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void SM_3x3<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 
-template __global__ void SM_3x3_CF_Vec_Template<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void SM_3x3_CF_Vec_Template<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void SM_3x3_CF_Vec_Template<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void SM_3x3_CF_Vec_Template<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void SM_3x3_CF_Vec_Template<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void SM_3x3_Vec<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void SM_3x3_Vec<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void SM_3x3_Vec<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void SM_3x3_Vec<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void SM_3x3_Vec<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 #endif
 
 void saveImage(const void* data, int rows, int cols, const std::string& filename) {
@@ -527,97 +527,97 @@ void test_outputs(cv::Mat* inputImg, cv::Mat* outputImg)
 	#define OPENCV_CUDA 0
 
 	#if BASE_KERNELS
-	GM_3x3_Template<1> << <grid, block >> > (d_input, d_output, rows, cols);
+	GM_3x3<1> << <grid, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	CM_3x3_Template<1> << <grid, block >> > (d_input, d_output, rows, cols);
+	CM_3x3<1> << <grid, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	SM_3x3_Template<1> << <grid, block >> > (d_input, d_output, rows, cols);
+	SM_3x3<1> << <grid, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	#endif
 
 	#if COARSENED_KERNELS
-	GM_3x3_Template<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
+	GM_3x3<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF2.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	GM_3x3_Template<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
+	GM_3x3<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF4.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	GM_3x3_Template<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
+	GM_3x3<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF8.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	GM_3x3_Template<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
+	GM_3x3<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF12.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	GM_3x3_Template<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
+	GM_3x3<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF16.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	CM_3x3_Template<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
+	CM_3x3<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF2.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	CM_3x3_Template<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
+	CM_3x3<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF4.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	CM_3x3_Template<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
+	CM_3x3<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF8.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	CM_3x3_Template<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
+	CM_3x3<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF12.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	CM_3x3_Template<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
+	CM_3x3<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF16.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	SM_3x3_Template<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
+	SM_3x3<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF2.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	SM_3x3_Template<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
+	SM_3x3<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF4.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	SM_3x3_Template<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
+	SM_3x3<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF8.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	#if !defined(INSUFFICIENT_MEMORY_FOR_CF12)
-	SM_3x3_Template<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
+	SM_3x3<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF12.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	#endif
 
 	#if !defined(INSUFFICIENT_MEMORY_FOR_CF16)
-	SM_3x3_Template<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
+	SM_3x3<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF16.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
@@ -626,80 +626,80 @@ void test_outputs(cv::Mat* inputImg, cv::Mat* outputImg)
 	#endif
 
 	#if VECTORIZED_KERNELS
-	GM_3x3_CF_Vec<2> << <grid_cf2, block>> > (d_input, d_output, rows, cols);
+	GM_3x3_Vec<2> << <grid_cf2, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF2_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	GM_3x3_CF_Vec<4> << <grid_cf4, block>> > (d_input, d_output, rows, cols);
+	GM_3x3_Vec<4> << <grid_cf4, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF4_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	GM_3x3_CF_Vec<8> << <grid_cf8, block>> > (d_input, d_output, rows, cols);
+	GM_3x3_Vec<8> << <grid_cf8, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF8_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	GM_3x3_CF_Vec<12> << <grid_cf12, block>> > (d_input, d_output, rows, cols);
+	GM_3x3_Vec<12> << <grid_cf12, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF12_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	GM_3x3_CF_Vec<16> << <grid_cf16, block>> > (d_input, d_output, rows, cols);
+	GM_3x3_Vec<16> << <grid_cf16, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/GM_3x3_CF16_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	CM_3x3_CF_Vec<2> << <grid_cf2, block>> > (d_input, d_output, rows, cols);
+	CM_3x3_Vec<2> << <grid_cf2, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF2_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	CM_3x3_CF_Vec<4> << <grid_cf4, block>> > (d_input, d_output, rows, cols);
+	CM_3x3_Vec<4> << <grid_cf4, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF4_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	CM_3x3_CF_Vec<8> << <grid_cf8, block>> > (d_input, d_output, rows, cols);
+	CM_3x3_Vec<8> << <grid_cf8, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF8_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	CM_3x3_CF_Vec<12> << <grid_cf12, block>> > (d_input, d_output, rows, cols);
+	CM_3x3_Vec<12> << <grid_cf12, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF12_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	CM_3x3_CF_Vec<16> << <grid_cf16, block>> > (d_input, d_output, rows, cols);
+	CM_3x3_Vec<16> << <grid_cf16, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF16_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	SM_3x3_CF_Vec_Template<2> << <grid_cf2, block>> > (d_input, d_output, rows, cols);
+	SM_3x3_Vec<2> << <grid_cf2, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF2_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	SM_3x3_CF_Vec_Template<4> << <grid_cf4, block>> > (d_input, d_output, rows, cols);
+	SM_3x3_Vec<4> << <grid_cf4, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF4_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	SM_3x3_CF_Vec_Template<8> << <grid_cf8, block>> > (d_input, d_output, rows, cols);
+	SM_3x3_Vec<8> << <grid_cf8, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF8_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
 	#if !defined(INSUFFICIENT_MEMORY_FOR_CF12)
-	SM_3x3_CF_Vec_Template<12> << <grid_cf12, block>> > (d_input, d_output, rows, cols);
+	SM_3x3_Vec<12> << <grid_cf12, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF12_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	#endif
 
 	#if !defined(INSUFFICIENT_MEMORY_FOR_CF16)
-	SM_3x3_CF_Vec_Template<16> << <grid_cf16, block>> > (d_input, d_output, rows, cols);
+	SM_3x3_Vec<16> << <grid_cf16, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF16_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
@@ -882,103 +882,103 @@ void call_kernel(cv::Mat* inputImg, cv::Mat* outputImg, KernelType kernelType){
 	switch (kernelType)
 	{
 	case KernelType::GM_3x3:
-		GM_3x3_Template<1> << <grid, block >> > (d_input, d_output, rows, cols);
+		GM_3x3<1> << <grid, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::CM_3x3:
-		CM_3x3_Template<1> << <grid, block >> > (d_input, d_output, rows, cols);
+		CM_3x3<1> << <grid, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::SM_3x3:
-		SM_3x3_Template<1> << <grid, block >> > (d_input, d_output, rows, cols);
+		SM_3x3<1> << <grid, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::GM_3x3_CF2:
-		GM_3x3_Template<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
+		GM_3x3<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::GM_3x3_CF4:
-		GM_3x3_Template<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
+		GM_3x3<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::GM_3x3_CF8:
-		GM_3x3_Template<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
+		GM_3x3<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::GM_3x3_CF12:
-		GM_3x3_Template<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
+		GM_3x3<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::GM_3x3_CF16:
-		GM_3x3_Template<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
+		GM_3x3<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::CM_3x3_CF2:
-		CM_3x3_Template<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
+		CM_3x3<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::CM_3x3_CF4:
-		CM_3x3_Template<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
+		CM_3x3<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::CM_3x3_CF8:
-		CM_3x3_Template<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
+		CM_3x3<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::CM_3x3_CF12:
-		CM_3x3_Template<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
+		CM_3x3<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::CM_3x3_CF16:
-		CM_3x3_Template<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
+		CM_3x3<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::GM_3x3_CF2_Vec:
-		GM_3x3_CF_Vec<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
+		GM_3x3_Vec<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::GM_3x3_CF4_Vec:
-		GM_3x3_CF_Vec<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
+		GM_3x3_Vec<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::GM_3x3_CF8_Vec:
-		GM_3x3_CF_Vec<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
+		GM_3x3_Vec<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::GM_3x3_CF12_Vec:
-		GM_3x3_CF_Vec<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
+		GM_3x3_Vec<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::GM_3x3_CF16_Vec:
-		GM_3x3_CF_Vec<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
+		GM_3x3_Vec<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::CM_3x3_CF2_Vec:
-		CM_3x3_CF_Vec<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
+		CM_3x3_Vec<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::CM_3x3_CF4_Vec:
-		CM_3x3_CF_Vec<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
+		CM_3x3_Vec<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::CM_3x3_CF8_Vec:
-		CM_3x3_CF_Vec<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
+		CM_3x3_Vec<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::CM_3x3_CF12_Vec:
-		CM_3x3_CF_Vec<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
+		CM_3x3_Vec<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::CM_3x3_CF16_Vec:
-		CM_3x3_CF_Vec<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
+		CM_3x3_Vec<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::SM_3x3_CF2:
-		SM_3x3_Template<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
+		SM_3x3<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::SM_3x3_CF4:
-		SM_3x3_Template<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
+		SM_3x3<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::SM_3x3_CF8:
-		SM_3x3_Template<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
+		SM_3x3<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::SM_3x3_CF12:
-		SM_3x3_Template<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
+		SM_3x3<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::SM_3x3_CF16:
-		SM_3x3_Template<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
+		SM_3x3<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::SM_3x3_CF2_Vec:
-		SM_3x3_CF_Vec_Template<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
+		SM_3x3_Vec<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::SM_3x3_CF4_Vec:
-		SM_3x3_CF_Vec_Template<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
+		SM_3x3_Vec<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::SM_3x3_CF8_Vec:
-		SM_3x3_CF_Vec_Template<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
+		SM_3x3_Vec<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::SM_3x3_CF12_Vec:
-		SM_3x3_CF_Vec_Template<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
+		SM_3x3_Vec<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::SM_3x3_CF16_Vec:
-		SM_3x3_CF_Vec_Template<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
+		SM_3x3_Vec<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 		break;
 	case KernelType::ArrayFire:
 			{
@@ -1053,43 +1053,43 @@ void call_kernel(cv::Mat* inputImg, cv::Mat* outputImg, KernelType kernelType){
 
 
 void launch_kernels(cv::Mat* inputImg, cv::Mat* outputImg){
-	// call_kernel(inputImg, outputImg, KernelType::GM_3x3);
-	// call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF2);
-	// call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF4);
-	// call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF8);
-	// call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF12);
-	// call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF16);
-	// call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF2_Vec);
-	// call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF4_Vec);
-	// call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF8_Vec);
-	// call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF12_Vec);
-	// call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF16_Vec);
+	call_kernel(inputImg, outputImg, KernelType::GM_3x3);
+	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF2);
+	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF4);
+	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF8);
+	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF12);
+	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF16);
+	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF2_Vec);
+	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF4_Vec);
+	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF8_Vec);
+	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF12_Vec);
+	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF16_Vec);
 
-	// call_kernel(inputImg, outputImg, KernelType::CM_3x3);
-	// call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF2);
-	// call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF4);
-	// call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF8);
-	// call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF12);
-	// call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF16);
-	// call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF2_Vec);
-	// call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF4_Vec);
-	// call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF8_Vec);
-	// call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF12_Vec);
-	// call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF16_Vec);
+	call_kernel(inputImg, outputImg, KernelType::CM_3x3);
+	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF2);
+	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF4);
+	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF8);
+	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF12);
+	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF16);
+	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF2_Vec);
+	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF4_Vec);
+	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF8_Vec);
+	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF12_Vec);
+	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF16_Vec);
 
-	// call_kernel(inputImg, outputImg, KernelType::SM_3x3);
-	// call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF2);
-	// call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF4);
-	// call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF8);
-	// call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF12);
-	// call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF16);
-	// call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF2_Vec);
-	// call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF4_Vec);
-	// call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF8_Vec);
-	// call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF12_Vec);
-	// call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF16_Vec);
+	call_kernel(inputImg, outputImg, KernelType::SM_3x3);
+	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF2);
+	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF4);
+	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF8);
+	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF12);
+	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF16);
+	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF2_Vec);
+	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF4_Vec);
+	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF8_Vec);
+	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF12_Vec);
+	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF16_Vec);
 
-	call_kernel(inputImg, outputImg, KernelType::ArrayFire);
-	call_kernel(inputImg, outputImg, KernelType::OpenCV);
+	// call_kernel(inputImg, outputImg, KernelType::ArrayFire);
+	// call_kernel(inputImg, outputImg, KernelType::OpenCV);
 }
 
