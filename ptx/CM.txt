@@ -1,0 +1,88 @@
+.visible .entry CM_3x3(unsigned char const*, unsigned char*, int, int)(
+        .param .u64 CM_3x3(unsigned char const*, unsigned char*, int, int)_param_0,
+        .param .u64 CM_3x3(unsigned char const*, unsigned char*, int, int)_param_1,
+        .param .u32 CM_3x3(unsigned char const*, unsigned char*, int, int)_param_2,
+        .param .u32 CM_3x3(unsigned char const*, unsigned char*, int, int)_param_3
+)
+{
+
+        ld.param.u64    %rd1, [CM_3x3(unsigned char const*, unsigned char*, int, int)_param_0];
+        ld.param.u64    %rd2, [CM_3x3(unsigned char const*, unsigned char*, int, int)_param_1];
+        ld.param.u32    %r4, [CM_3x3(unsigned char const*, unsigned char*, int, int)_param_2];
+        ld.param.u32    %r3, [CM_3x3(unsigned char const*, unsigned char*, int, int)_param_3];
+        mov.u32         %r5, %ntid.x;
+        mov.u32         %r6, %ctaid.x;
+        mov.u32         %r7, %tid.x;
+        mad.lo.s32      %r1, %r6, %r5, %r7;
+        mov.u32         %r8, %ntid.y;
+        mov.u32         %r9, %ctaid.y;
+        mov.u32         %r10, %tid.y;
+        mad.lo.s32      %r2, %r9, %r8, %r10;
+        setp.gt.s32     %p1, %r2, 0;
+        add.s32         %r11, %r4, -1;
+        setp.lt.s32     %p2, %r2, %r11;
+        and.pred        %p3, %p1, %p2;
+        setp.gt.s32     %p4, %r1, 0;
+        add.s32         %r12, %r3, -1;
+        setp.lt.s32     %p5, %r1, %r12;
+        and.pred        %p6, %p4, %p5;
+        and.pred        %p7, %p3, %p6;
+        not.pred        %p8, %p7;
+        @%p8 bra        $L__BB1_2;
+
+        cvta.to.global.u64      %rd3, %rd1;
+        cvta.to.global.u64      %rd4, %rd2;
+        add.s32         %r13, %r2, -1;
+        mad.lo.s32      %r14, %r13, %r3, %r1;
+        cvt.s64.s32     %rd5, %r14;
+        add.s64         %rd6, %rd3, %rd5;
+        ld.global.nc.u8         %rs1, [%rd6+-1];
+        cvt.rn.f32.u16  %f1, %rs1;
+        ld.const.f32    %f2, [CM_Filter];
+        ld.global.nc.u8         %rs3, [%rd6];
+        cvt.rn.f32.u16  %f3, %rs3;
+        ld.const.f32    %f4, [CM_Filter+4];
+        mul.f32         %f5, %f4, %f3;
+        fma.rn.f32      %f6, %f2, %f1, %f5;
+        ld.global.nc.u8         %rs5, [%rd6+1];
+        cvt.rn.f32.u16  %f7, %rs5;
+        ld.const.f32    %f8, [CM_Filter+8];
+        fma.rn.f32      %f9, %f8, %f7, %f6;
+        mad.lo.s32      %r15, %r2, %r3, %r1;
+        cvt.s64.s32     %rd7, %r15;
+        add.s64         %rd8, %rd3, %rd7;
+        ld.global.nc.u8         %rs7, [%rd8+-1];
+        cvt.rn.f32.u16  %f10, %rs7;
+        ld.const.f32    %f11, [CM_Filter+12];
+        fma.rn.f32      %f12, %f11, %f10, %f9;
+        ld.global.nc.u8         %rs9, [%rd8];
+        cvt.rn.f32.u16  %f13, %rs9;
+        ld.const.f32    %f14, [CM_Filter+16];
+        fma.rn.f32      %f15, %f14, %f13, %f12;
+        ld.global.nc.u8         %rs11, [%rd8+1];
+        cvt.rn.f32.u16  %f16, %rs11;
+        ld.const.f32    %f17, [CM_Filter+20];
+        fma.rn.f32      %f18, %f17, %f16, %f15;
+        add.s32         %r16, %r15, %r3;
+        cvt.s64.s32     %rd9, %r16;
+        add.s64         %rd10, %rd3, %rd9;
+        ld.global.nc.u8         %rs13, [%rd10+-1];
+        cvt.rn.f32.u16  %f19, %rs13;
+        ld.const.f32    %f20, [CM_Filter+24];
+        fma.rn.f32      %f21, %f20, %f19, %f18;
+        ld.global.nc.u8         %rs15, [%rd10];
+        cvt.rn.f32.u16  %f22, %rs15;
+        ld.const.f32    %f23, [CM_Filter+28];
+        fma.rn.f32      %f24, %f23, %f22, %f21;
+        ld.global.nc.u8         %rs17, [%rd10+1];
+        cvt.rn.f32.u16  %f25, %rs17;
+        ld.const.f32    %f26, [CM_Filter+32];
+        fma.rn.f32      %f27, %f26, %f25, %f24;
+        cvt.rzi.u32.f32         %r17, %f27;
+        add.s64         %rd11, %rd4, %rd7;
+        st.global.u8    [%rd11], %r17;
+
+$L__BB1_2:
+        ret;
+
+}

@@ -1,0 +1,97 @@
+.visible .entry GM_3x3(unsigned char const*, unsigned char*, int, int)(
+        .param .u64 GM_3x3(unsigned char const*, unsigned char*, int, int)_param_0,
+        .param .u64 GM_3x3(unsigned char const*, unsigned char*, int, int)_param_1,
+        .param .u32 GM_3x3(unsigned char const*, unsigned char*, int, int)_param_2,
+        .param .u32 GM_3x3(unsigned char const*, unsigned char*, int, int)_param_3
+)
+{
+
+        ld.param.u64    %rd1, [GM_3x3(unsigned char const*, unsigned char*, int, int)_param_0];
+        ld.param.u64    %rd2, [GM_3x3(unsigned char const*, unsigned char*, int, int)_param_1];
+        ld.param.u32    %r4, [GM_3x3(unsigned char const*, unsigned char*, int, int)_param_2];
+        ld.param.u32    %r3, [GM_3x3(unsigned char const*, unsigned char*, int, int)_param_3];
+        mov.u32         %r5, %ntid.x;
+        mov.u32         %r6, %ctaid.x;
+        mov.u32         %r7, %tid.x;
+        mad.lo.s32      %r1, %r6, %r5, %r7;
+        mov.u32         %r8, %ntid.y;
+        mov.u32         %r9, %ctaid.y;
+        mov.u32         %r10, %tid.y;
+        mad.lo.s32      %r2, %r9, %r8, %r10;
+        setp.gt.s32     %p1, %r2, 0;
+        add.s32         %r11, %r4, -1;
+        setp.lt.s32     %p2, %r2, %r11;
+        and.pred        %p3, %p1, %p2;
+        setp.gt.s32     %p4, %r1, 0;
+        add.s32         %r12, %r3, -1;
+        setp.lt.s32     %p5, %r1, %r12;
+        and.pred        %p6, %p4, %p5;
+        and.pred        %p7, %p3, %p6;
+        not.pred        %p8, %p7;
+        @%p8 bra        $L__BB0_2;
+
+        cvta.to.global.u64      %rd3, %rd1;
+        cvta.to.global.u64      %rd4, %rd2;
+        add.s32         %r13, %r2, -1;
+        mad.lo.s32      %r14, %r13, %r3, %r1;
+        cvt.s64.s32     %rd5, %r14;
+        add.s64         %rd6, %rd3, %rd5;
+        ld.global.nc.u8         %rs1, [%rd6+-1];
+        cvt.rn.f32.u16  %f1, %rs1;
+        ld.global.nc.f32        %f2, [GM_Filter];
+        mov.u64         %rd7, GM_Filter;
+        ld.global.nc.u8         %rs3, [%rd6];
+        cvt.rn.f32.u16  %f3, %rs3;
+        add.s64         %rd8, %rd7, 4;
+        ld.global.nc.f32        %f4, [%rd8];
+        mul.f32         %f5, %f4, %f3;
+        fma.rn.f32      %f6, %f2, %f1, %f5;
+        ld.global.nc.u8         %rs5, [%rd6+1];
+        cvt.rn.f32.u16  %f7, %rs5;
+        add.s64         %rd9, %rd7, 8;
+        ld.global.nc.f32        %f8, [%rd9];
+        fma.rn.f32      %f9, %f8, %f7, %f6;
+        mad.lo.s32      %r15, %r2, %r3, %r1;
+        cvt.s64.s32     %rd10, %r15;
+        add.s64         %rd11, %rd3, %rd10;
+        ld.global.nc.u8         %rs7, [%rd11+-1];
+        cvt.rn.f32.u16  %f10, %rs7;
+        add.s64         %rd12, %rd7, 12;
+        ld.global.nc.f32        %f11, [%rd12];
+        fma.rn.f32      %f12, %f11, %f10, %f9;
+        ld.global.nc.u8         %rs9, [%rd11];
+        cvt.rn.f32.u16  %f13, %rs9;
+        add.s64         %rd13, %rd7, 16;
+        ld.global.nc.f32        %f14, [%rd13];
+        fma.rn.f32      %f15, %f14, %f13, %f12;
+        ld.global.nc.u8         %rs11, [%rd11+1];
+        cvt.rn.f32.u16  %f16, %rs11;
+        add.s64         %rd14, %rd7, 20;
+        ld.global.nc.f32        %f17, [%rd14];
+        fma.rn.f32      %f18, %f17, %f16, %f15;
+        add.s32         %r16, %r15, %r3;
+        cvt.s64.s32     %rd15, %r16;
+        add.s64         %rd16, %rd3, %rd15;
+        ld.global.nc.u8         %rs13, [%rd16+-1];
+        cvt.rn.f32.u16  %f19, %rs13;
+        add.s64         %rd17, %rd7, 24;
+        ld.global.nc.f32        %f20, [%rd17];
+        fma.rn.f32      %f21, %f20, %f19, %f18;
+        ld.global.nc.u8         %rs15, [%rd16];
+        cvt.rn.f32.u16  %f22, %rs15;
+        add.s64         %rd18, %rd7, 28;
+        ld.global.nc.f32        %f23, [%rd18];
+        fma.rn.f32      %f24, %f23, %f22, %f21;
+        ld.global.nc.u8         %rs17, [%rd16+1];
+        cvt.rn.f32.u16  %f25, %rs17;
+        add.s64         %rd19, %rd7, 32;
+        ld.global.nc.f32        %f26, [%rd19];
+        fma.rn.f32      %f27, %f26, %f25, %f24;
+        cvt.rzi.u32.f32         %r17, %f27;
+        add.s64         %rd20, %rd4, %rd10;
+        st.global.u8    [%rd20], %r17;
+
+$L__BB0_2:
+        ret;
+
+}

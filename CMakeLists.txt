@@ -7,7 +7,6 @@ enable_language(CUDA)
 
 set(ArrayFire_DIR "C:/Program Files/ArrayFire/v3/cmake")
 set(CUDNN_INCLUDE_DIR "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.3/include")
-set(CUDNN_LIBRARY "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.3/lib/x64/cudnn.lib")
 set(OpenCV_DIR "C:/Users/ben/Desktop/opencv-source/opencv/build/install")
 
 find_package(CUDAToolkit REQUIRED)
@@ -42,7 +41,6 @@ target_link_libraries(
     ${PROJECT_NAME}
     ${OpenCV_LIBS}
     ${CUDA_LIBRARIES}
-    ${CUDNN_LIBRARY}
     CUDA::nppc
     CUDA::nppial
     CUDA::nppig
