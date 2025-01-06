@@ -492,7 +492,7 @@ void saveImage(const void* data, int rows, int cols, const std::string& filename
 #endif
 }
 
-void test_outputs(cv::Mat* inputImg, cv::Mat* outputImg)
+void testOutputs(cv::Mat* inputImg, cv::Mat* outputImg)
 {
 	imtype* d_input = nullptr;
 	imtype* d_output = nullptr;
@@ -854,7 +854,45 @@ void test_outputs(cv::Mat* inputImg, cv::Mat* outputImg)
 	CHECK_CUDA_ERROR(cudaFree(d_output));
 }
 
-void call_kernel(cv::Mat* inputImg, cv::Mat* outputImg, KernelType kernelType){
+using kernelPtr = void (*)(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+
+std::map<KernelType, kernelPtr> kernelMap = {
+	{KernelType::GM_3x3, &GM_3x3<1>},
+	{KernelType::CM_3x3, &CM_3x3<1>},
+	{KernelType::SM_3x3, &SM_3x3<1>},
+	{KernelType::GM_3x3_CF2, &GM_3x3<2>},
+	{KernelType::GM_3x3_CF4, &GM_3x3<4>},
+	{KernelType::GM_3x3_CF8, &GM_3x3<8>},
+	{KernelType::GM_3x3_CF12, &GM_3x3<12>},
+	{KernelType::GM_3x3_CF16, &GM_3x3<16>},
+	{KernelType::CM_3x3_CF2, &CM_3x3<2>},
+	{KernelType::CM_3x3_CF4, &CM_3x3<4>},
+	{KernelType::CM_3x3_CF8, &CM_3x3<8>},
+	{KernelType::CM_3x3_CF12, &CM_3x3<12>},
+	{KernelType::CM_3x3_CF16, &CM_3x3<16>},
+	{KernelType::GM_3x3_CF2_Vec, &GM_3x3_Vec<2>},
+	{KernelType::GM_3x3_CF4_Vec, &GM_3x3_Vec<4>},
+	{KernelType::GM_3x3_CF8_Vec, &GM_3x3_Vec<8>},
+	{KernelType::GM_3x3_CF12_Vec, &GM_3x3_Vec<12>},
+	{KernelType::GM_3x3_CF16_Vec, &GM_3x3_Vec<16>},
+	{KernelType::CM_3x3_CF2_Vec, &CM_3x3_Vec<2>},
+	{KernelType::CM_3x3_CF4_Vec, &CM_3x3_Vec<4>},
+	{KernelType::CM_3x3_CF8_Vec, &CM_3x3_Vec<8>},
+	{KernelType::CM_3x3_CF12_Vec, &CM_3x3_Vec<12>},
+	{KernelType::CM_3x3_CF16_Vec, &CM_3x3_Vec<16>},
+	{KernelType::SM_3x3_CF2, &SM_3x3<2>},
+	{KernelType::SM_3x3_CF4, &SM_3x3<4>},
+	{KernelType::SM_3x3_CF8, &SM_3x3<8>},
+	{KernelType::SM_3x3_CF12, &SM_3x3<12>},
+	{KernelType::SM_3x3_CF16, &SM_3x3<16>},
+	{KernelType::SM_3x3_CF2_Vec, &SM_3x3_Vec<2>},
+	{KernelType::SM_3x3_CF4_Vec, &SM_3x3_Vec<4>},
+	{KernelType::SM_3x3_CF8_Vec, &SM_3x3_Vec<8>},
+	{KernelType::SM_3x3_CF12_Vec, &SM_3x3_Vec<12>},
+	{KernelType::SM_3x3_CF16_Vec, &SM_3x3_Vec<16>}
+};
+
+void callKernel(cv::Mat* inputImg, cv::Mat* outputImg, KernelType kernelType){
 	imtype* d_input = nullptr;
 	imtype* d_output = nullptr;
 	imtype* h_input = reinterpret_cast<imtype*>(inputImg->data);
@@ -879,171 +917,111 @@ void call_kernel(cv::Mat* inputImg, cv::Mat* outputImg, KernelType kernelType){
 	CHECK_CUDA_ERROR(cudaMemcpy(d_input, h_input, size, cudaMemcpyHostToDevice));
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
-	switch (kernelType)
-	{
-	case KernelType::GM_3x3:
-		GM_3x3<1> << <grid, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::CM_3x3:
-		CM_3x3<1> << <grid, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::SM_3x3:
-		SM_3x3<1> << <grid, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::GM_3x3_CF2:
-		GM_3x3<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::GM_3x3_CF4:
-		GM_3x3<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::GM_3x3_CF8:
-		GM_3x3<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::GM_3x3_CF12:
-		GM_3x3<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::GM_3x3_CF16:
-		GM_3x3<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::CM_3x3_CF2:
-		CM_3x3<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::CM_3x3_CF4:
-		CM_3x3<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::CM_3x3_CF8:
-		CM_3x3<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::CM_3x3_CF12:
-		CM_3x3<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::CM_3x3_CF16:
-		CM_3x3<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::GM_3x3_CF2_Vec:
-		GM_3x3_Vec<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::GM_3x3_CF4_Vec:
-		GM_3x3_Vec<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::GM_3x3_CF8_Vec:
-		GM_3x3_Vec<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::GM_3x3_CF12_Vec:
-		GM_3x3_Vec<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::GM_3x3_CF16_Vec:
-		GM_3x3_Vec<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::CM_3x3_CF2_Vec:
-		CM_3x3_Vec<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::CM_3x3_CF4_Vec:
-		CM_3x3_Vec<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::CM_3x3_CF8_Vec:
-		CM_3x3_Vec<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::CM_3x3_CF12_Vec:
-		CM_3x3_Vec<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::CM_3x3_CF16_Vec:
-		CM_3x3_Vec<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::SM_3x3_CF2:
-		SM_3x3<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::SM_3x3_CF4:
-		SM_3x3<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::SM_3x3_CF8:
-		SM_3x3<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::SM_3x3_CF12:
-		SM_3x3<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::SM_3x3_CF16:
-		SM_3x3<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::SM_3x3_CF2_Vec:
-		SM_3x3_Vec<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::SM_3x3_CF4_Vec:
-		SM_3x3_Vec<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::SM_3x3_CF8_Vec:
-		SM_3x3_Vec<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::SM_3x3_CF12_Vec:
-		SM_3x3_Vec<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::SM_3x3_CF16_Vec:
-		SM_3x3_Vec<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
-		break;
-	case KernelType::ArrayFire:
-			{
-			CHECK_ARRAYFIRE(af_init());
-			CHECK_ARRAYFIRE(af_set_backend(AF_BACKEND_CUDA));
+	auto kernelFunc = kernelMap.find(kernelType);
+	if (kernelFunc != kernelMap.end()) {
+		switch (kernelType) {
+			case KernelType::GM_3x3_CF2:
+			case KernelType::CM_3x3_CF2:
+			case KernelType::GM_3x3_CF2_Vec:
+			case KernelType::CM_3x3_CF2_Vec:
+			case KernelType::SM_3x3_CF2:
+			case KernelType::SM_3x3_CF2_Vec:
+				kernelFunc->second<<<grid_cf2, block>>>(d_input, d_output, rows, cols);
+				break;
+			case KernelType::GM_3x3_CF4:
+			case KernelType::CM_3x3_CF4:
+			case KernelType::GM_3x3_CF4_Vec:
+			case KernelType::CM_3x3_CF4_Vec:
+			case KernelType::SM_3x3_CF4:
+			case KernelType::SM_3x3_CF4_Vec:
+				kernelFunc->second<<<grid_cf4, block>>>(d_input, d_output, rows, cols);
+				break;
+			case KernelType::GM_3x3_CF8:
+			case KernelType::CM_3x3_CF8:
+			case KernelType::GM_3x3_CF8_Vec:
+			case KernelType::CM_3x3_CF8_Vec:
+			case KernelType::SM_3x3_CF8:
+			case KernelType::SM_3x3_CF8_Vec:
+				kernelFunc->second<<<grid_cf8, block>>>(d_input, d_output, rows, cols);
+				break;
+			case KernelType::GM_3x3_CF12:
+			case KernelType::CM_3x3_CF12:
+			case KernelType::GM_3x3_CF12_Vec:
+			case KernelType::CM_3x3_CF12_Vec:
+			case KernelType::SM_3x3_CF12:
+			case KernelType::SM_3x3_CF12_Vec:
+				kernelFunc->second<<<grid_cf12, block>>>(d_input, d_output, rows, cols);
+				break;
+			case KernelType::GM_3x3_CF16:
+			case KernelType::CM_3x3_CF16:
+			case KernelType::GM_3x3_CF16_Vec:
+			case KernelType::CM_3x3_CF16_Vec:
+			case KernelType::SM_3x3_CF16:
+			case KernelType::SM_3x3_CF16_Vec:
+				kernelFunc->second<<<grid_cf16, block>>>(d_input, d_output, rows, cols);
+				break;
+			case KernelType::ArrayFire:
+				{
+					CHECK_ARRAYFIRE(af_init());
+					CHECK_ARRAYFIRE(af_set_backend(AF_BACKEND_CUDA));
 
-			af_backend active_backend;
-			af_get_active_backend(&active_backend);
-			if (active_backend != AF_BACKEND_CUDA) {
-				std::cerr << "CUDA backend is inactive.. abort()" << active_backend << std::endl;
-				abort();
-			}
+					af_backend active_backend;
+					af_get_active_backend(&active_backend);
+					if (active_backend != AF_BACKEND_CUDA) {
+						std::cerr << "CUDA backend is inactive.. abort()" << active_backend << std::endl;
+						abort();
+					}
 
-			dim_t dims_of_input[2] = {rows, cols};
-			dim_t dims_of_kernel[2] = {3, 3};
+					dim_t dims_of_input[2] = {rows, cols};
+					dim_t dims_of_kernel[2] = {3, 3};
 
-			af_array af_input, af_kernel, af_output;
+					af_array af_input, af_kernel, af_output;
 
-			#ifdef IMTYPE_FLOAT
-			imtype h_kernel[9] = {1/16.0f, 2/16.0f, 1/16.0f,
-						2/16.0f, 4/16.0f, 2/16.0f,
-						1/16.0f, 2/16.0f, 1/16.0f};
-			CHECK_ARRAYFIRE(af_create_array(&af_input, h_input, 2, dims_of_input, f32));
-			CHECK_ARRAYFIRE(af_create_array(&af_kernel, h_kernel, 2, dims_of_kernel, f32));			
-			#elif defined(IMTYPE_UCHAR)
-			CHECK_ARRAYFIRE(af_create_array(&af_input, h_input, 2, dims_of_input, u8));	
-			#endif
-			CHECK_ARRAYFIRE(af_gaussian_kernel(&af_kernel, 3, 3, 0, 0));
-			CHECK_ARRAYFIRE(af_convolve2(&af_output, af_input, af_kernel, AF_CONV_DEFAULT, AF_CONV_AUTO));
-			CHECK_ARRAYFIRE(af_get_data_ptr(h_output, af_output));
+					#ifdef IMTYPE_FLOAT
+					imtype h_kernel[9] = {1/16.0f, 2/16.0f, 1/16.0f,
+								2/16.0f, 4/16.0f, 2/16.0f,
+								1/16.0f, 2/16.0f, 1/16.0f};
+					CHECK_ARRAYFIRE(af_create_array(&af_input, h_input, 2, dims_of_input, f32));
+					CHECK_ARRAYFIRE(af_create_array(&af_kernel, h_kernel, 2, dims_of_kernel, f32));			
+					#elif defined(IMTYPE_UCHAR)
+					CHECK_ARRAYFIRE(af_create_array(&af_input, h_input, 2, dims_of_input, u8));	
+					#endif
+					CHECK_ARRAYFIRE(af_gaussian_kernel(&af_kernel, 3, 3, 0, 0));
+					CHECK_ARRAYFIRE(af_convolve2(&af_output, af_input, af_kernel, AF_CONV_DEFAULT, AF_CONV_AUTO));
+					CHECK_ARRAYFIRE(af_get_data_ptr(h_output, af_output));
+				}
+				break;
+			case KernelType::OpenCV:
+				{
+					cv::cuda::GpuMat d_input, d_output;
+					d_input.upload(*inputImg);
+					d_output.upload(*outputImg);
+
+					cv::Mat h_kernel = (cv::Mat_<float>(3, 3) << 
+								1/16.0f, 2/16.0f, 1/16.0f,
+								2/16.0f, 4/16.0f, 2/16.0f,
+								1/16.0f, 2/16.0f, 1/16.0f);
+					
+					cv::Ptr<cv::cuda::Filter> gaussianFilter = cv::cuda::createLinearFilter(d_input.type(), d_output.type(), h_kernel);
+					gaussianFilter->apply(d_input, d_output);
+
+					cv::Mat blurred;
+					d_output.download(blurred);
+
+					gaussianFilter = cv::cuda::createGaussianFilter(d_input.type(), d_output.type(), cv::Size(3,3), 1.0f);
+					gaussianFilter->apply(d_input, d_output);
+
+					d_output.download(blurred);
+				}
+				break;
+			default:
+				kernelFunc->second<<<grid, block>>>(d_input, d_output, rows, cols);
+				break;
 		}
-		break;
-	case KernelType::OpenCV:
-		{
-			try
-			{
-				cv::cuda::GpuMat d_input, d_output;
-				d_input.upload(*inputImg);
-				d_output.upload(*outputImg);
-
-				cv::Mat h_kernel = (cv::Mat_<float>(3, 3) << 
-							1/16.0f, 2/16.0f, 1/16.0f,
-							2/16.0f, 4/16.0f, 2/16.0f,
-							1/16.0f, 2/16.0f, 1/16.0f);
-				
-				cv::Ptr<cv::cuda::Filter> gaussianFilter = cv::cuda::createLinearFilter(d_input.type(), d_output.type(), h_kernel);
-				gaussianFilter->apply(d_input, d_output);
-
-				cv::Mat blurred;
-				d_output.download(blurred);
-
-				gaussianFilter = cv::cuda::createGaussianFilter(d_input.type(), d_output.type(), cv::Size(3,3), 1.0f);
-				gaussianFilter->apply(d_input, d_output);
-
-				d_output.download(blurred);
-			}
-			catch(const std::exception& e)
-			{
-				std::cerr << e.what() << '\n';
-			}
-		}
-		break;
-	default:
-		break;
+	} else {
+		std::cerr << "Kernel type not supported." << std::endl;
 	}
+
 	CHECK_CUDA_ERROR(cudaHostUnregister(h_input));
 	CHECK_CUDA_ERROR(cudaHostUnregister(h_output));
 	CHECK_CUDA_ERROR(cudaFree(d_input));
@@ -1052,44 +1030,44 @@ void call_kernel(cv::Mat* inputImg, cv::Mat* outputImg, KernelType kernelType){
 }
 
 
-void launch_kernels(cv::Mat* inputImg, cv::Mat* outputImg){
-	call_kernel(inputImg, outputImg, KernelType::GM_3x3);
-	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF2);
-	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF4);
-	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF8);
-	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF12);
-	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF16);
-	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF2_Vec);
-	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF4_Vec);
-	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF8_Vec);
-	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF12_Vec);
-	call_kernel(inputImg, outputImg, KernelType::GM_3x3_CF16_Vec);
+void launchKernels(cv::Mat* inputImg, cv::Mat* outputImg){
+	callKernel(inputImg, outputImg, KernelType::GM_3x3);
+	callKernel(inputImg, outputImg, KernelType::GM_3x3_CF2);
+	callKernel(inputImg, outputImg, KernelType::GM_3x3_CF4);
+	callKernel(inputImg, outputImg, KernelType::GM_3x3_CF8);
+	callKernel(inputImg, outputImg, KernelType::GM_3x3_CF12);
+	callKernel(inputImg, outputImg, KernelType::GM_3x3_CF16);
+	callKernel(inputImg, outputImg, KernelType::GM_3x3_CF2_Vec);
+	callKernel(inputImg, outputImg, KernelType::GM_3x3_CF4_Vec);
+	callKernel(inputImg, outputImg, KernelType::GM_3x3_CF8_Vec);
+	callKernel(inputImg, outputImg, KernelType::GM_3x3_CF12_Vec);
+	callKernel(inputImg, outputImg, KernelType::GM_3x3_CF16_Vec);
 
-	call_kernel(inputImg, outputImg, KernelType::CM_3x3);
-	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF2);
-	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF4);
-	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF8);
-	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF12);
-	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF16);
-	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF2_Vec);
-	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF4_Vec);
-	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF8_Vec);
-	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF12_Vec);
-	call_kernel(inputImg, outputImg, KernelType::CM_3x3_CF16_Vec);
+	callKernel(inputImg, outputImg, KernelType::CM_3x3);
+	callKernel(inputImg, outputImg, KernelType::CM_3x3_CF2);
+	callKernel(inputImg, outputImg, KernelType::CM_3x3_CF4);
+	callKernel(inputImg, outputImg, KernelType::CM_3x3_CF8);
+	callKernel(inputImg, outputImg, KernelType::CM_3x3_CF12);
+	callKernel(inputImg, outputImg, KernelType::CM_3x3_CF16);
+	callKernel(inputImg, outputImg, KernelType::CM_3x3_CF2_Vec);
+	callKernel(inputImg, outputImg, KernelType::CM_3x3_CF4_Vec);
+	callKernel(inputImg, outputImg, KernelType::CM_3x3_CF8_Vec);
+	callKernel(inputImg, outputImg, KernelType::CM_3x3_CF12_Vec);
+	callKernel(inputImg, outputImg, KernelType::CM_3x3_CF16_Vec);
 
-	call_kernel(inputImg, outputImg, KernelType::SM_3x3);
-	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF2);
-	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF4);
-	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF8);
-	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF12);
-	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF16);
-	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF2_Vec);
-	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF4_Vec);
-	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF8_Vec);
-	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF12_Vec);
-	call_kernel(inputImg, outputImg, KernelType::SM_3x3_CF16_Vec);
+	callKernel(inputImg, outputImg, KernelType::SM_3x3);
+	callKernel(inputImg, outputImg, KernelType::SM_3x3_CF2);
+	callKernel(inputImg, outputImg, KernelType::SM_3x3_CF4);
+	callKernel(inputImg, outputImg, KernelType::SM_3x3_CF8);
+	callKernel(inputImg, outputImg, KernelType::SM_3x3_CF12);
+	callKernel(inputImg, outputImg, KernelType::SM_3x3_CF16);
+	callKernel(inputImg, outputImg, KernelType::SM_3x3_CF2_Vec);
+	callKernel(inputImg, outputImg, KernelType::SM_3x3_CF4_Vec);
+	callKernel(inputImg, outputImg, KernelType::SM_3x3_CF8_Vec);
+	callKernel(inputImg, outputImg, KernelType::SM_3x3_CF12_Vec);
+	callKernel(inputImg, outputImg, KernelType::SM_3x3_CF16_Vec);
 
-	// call_kernel(inputImg, outputImg, KernelType::ArrayFire);
-	// call_kernel(inputImg, outputImg, KernelType::OpenCV);
+	// callKernel(inputImg, outputImg, KernelType::ArrayFire);
+	// callKernel(inputImg, outputImg, KernelType::OpenCV);
 }
 

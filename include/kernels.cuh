@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <map>
+
 #include <arrayfire.h>
 
 #include "cuda-libs.cuh"
