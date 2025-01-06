@@ -258,7 +258,6 @@ template __global__ void CM_3x3_Vec<12>(imtype* __restrict__ input, imtype* __re
 template __global__ void CM_3x3_Vec<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 
 
-#if !defined(INSUFFICIENT_MEMORY_FOR_CF16)
 template<int COARSENING_FACTOR>
 __global__ void SM_3x3(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
 {
@@ -467,16 +466,29 @@ __global__ void SM_3x3_Vec(imtype* __restrict__ input, imtype* __restrict__ outp
 	}
 }
 
-template __global__ void SM_3x3<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void SM_3x3<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void SM_3x3<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void SM_3x3<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void SM_3x3<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 
+#ifndef INSUFFICIENT_MEMORY_FOR_CF2
+template __global__ void SM_3x3<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 template __global__ void SM_3x3_Vec<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+#endif
+
+#ifndef INSUFFICIENT_MEMORY_FOR_CF4
+template __global__ void SM_3x3<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 template __global__ void SM_3x3_Vec<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+#endif
+
+#ifndef INSUFFICIENT_MEMORY_FOR_CF8
+template __global__ void SM_3x3<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 template __global__ void SM_3x3_Vec<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+#endif
+
+#ifndef INSUFFICIENT_MEMORY_FOR_CF12
+template __global__ void SM_3x3<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 template __global__ void SM_3x3_Vec<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+#endif
+
+#ifndef INSUFFICIENT_MEMORY_FOR_CF16
+template __global__ void SM_3x3<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 template __global__ void SM_3x3_Vec<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 #endif
 
@@ -594,29 +606,35 @@ void testOutputs(cv::Mat* inputImg, cv::Mat* outputImg)
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF16.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
+	#ifndef INSUFFICIENT_MEMORY_FOR_CF2
 	SM_3x3<2> << <grid_cf2, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF2.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+	#endif
 
+	#ifndef INSUFFICIENT_MEMORY_FOR_CF4
 	SM_3x3<4> << <grid_cf4, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF4.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+	#endif
 
+	#ifndef INSUFFICIENT_MEMORY_FOR_CF8
 	SM_3x3<8> << <grid_cf8, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF8.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+	#endif
 
-	#if !defined(INSUFFICIENT_MEMORY_FOR_CF12)
+	#ifndef INSUFFICIENT_MEMORY_FOR_CF12
 	SM_3x3<12> << <grid_cf12, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF12.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	#endif
 
-	#if !defined(INSUFFICIENT_MEMORY_FOR_CF16)
+	#ifndef INSUFFICIENT_MEMORY_FOR_CF16
 	SM_3x3<16> << <grid_cf16, block >> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF16.png");
@@ -676,29 +694,35 @@ void testOutputs(cv::Mat* inputImg, cv::Mat* outputImg)
 	saveImage(h_output, rows, cols, "../images/outputs/CM_3x3_CF16_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 
+	#ifndef INSUFFICIENT_MEMORY_FOR_CF2
 	SM_3x3_Vec<2> << <grid_cf2, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF2_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+	#endif
 
+	#ifndef INSUFFICIENT_MEMORY_FOR_CF4
 	SM_3x3_Vec<4> << <grid_cf4, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF4_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+	#endif
 
+	#ifndef INSUFFICIENT_MEMORY_FOR_CF8
 	SM_3x3_Vec<8> << <grid_cf8, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF8_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
+	#endif
 
-	#if !defined(INSUFFICIENT_MEMORY_FOR_CF12)
+	#ifndef INSUFFICIENT_MEMORY_FOR_CF12
 	SM_3x3_Vec<12> << <grid_cf12, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF12_Vec.png");
 	CHECK_CUDA_ERROR(cudaMemset((void*)d_output, 0, size));
 	#endif
 
-	#if !defined(INSUFFICIENT_MEMORY_FOR_CF16)
+	#ifndef INSUFFICIENT_MEMORY_FOR_CF16
 	SM_3x3_Vec<16> << <grid_cf16, block>> > (d_input, d_output, rows, cols);
 	CHECK_CUDA_ERROR(cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost));
 	saveImage(h_output, rows, cols, "../images/outputs/SM_3x3_CF16_Vec.png");
@@ -1070,4 +1094,3 @@ void launchKernels(cv::Mat* inputImg, cv::Mat* outputImg){
 	// callKernel(inputImg, outputImg, KernelType::ArrayFire);
 	// callKernel(inputImg, outputImg, KernelType::OpenCV);
 }
-
