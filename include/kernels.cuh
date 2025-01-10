@@ -71,6 +71,6 @@ enum class KernelType {
     #define INSUFFICIENT_MEMORY_FOR_CF16
 #endif
 
-void launch_kernels(cv::Mat* input_img, cv::Mat* output_img);
-void test_outputs(cv::Mat* input_img, cv::Mat* output_img);
-void call_kernel(cv::Mat* input_img, cv::Mat* output_img, KernelType func);
+void launchKernels(cv::Mat* input_img, cv::Mat* output_img);
+void testOutputs(cv::Mat* input_img, cv::Mat* output_img);
+void callKernel(cv::Mat* input_img, cv::Mat* output_img, KernelType func);

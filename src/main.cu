@@ -28,11 +28,11 @@ int main(int argc, char** argv)
 
     #ifdef IMTYPE_FLOAT
         for(int i = 0; i < input_32FC1.size(); i++){
-            launch_kernels(&input_32FC1.at(i), &output_32FC1.at(i));
+            launchKernels(&input_32FC1.at(i), &output_32FC1.at(i));
         }
     #elif defined(IMTYPE_UCHAR)
         for(int i = 0; i < input_8UC1.size(); i++){
-            launch_kernels(&input_8UC1.at(i), &output_8UC1.at(i));
+            launchKernels(&input_8UC1.at(i), &output_8UC1.at(i));
         }
     #endif
     return 0;
