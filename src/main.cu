@@ -8,9 +8,13 @@ int main(int argc, char** argv)
     std::string img_path4096 = "../images/inputs/4096.png";
     std::string img_path8192 = "../images/inputs/8192.png";
 
+    std::string img_path1536 = "../images/inputs/1536.png";
+    std::string img_path3072 = "../images/inputs/3072.png";
+    std::string img_path4608 = "../images/inputs/4608.png";
+
     std::vector<cv::Mat> input_8UC1;
     std::vector<cv::Mat> input_32FC1;
-    input_8UC1.push_back(cv::imread(img_path4096, cv::IMREAD_GRAYSCALE));
+    input_8UC1.push_back(cv::imread(img_path1536, cv::IMREAD_GRAYSCALE));
 
     for (cv::Mat& image : input_8UC1) {
         cv::Mat buffer;

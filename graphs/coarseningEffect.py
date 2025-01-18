@@ -4,11 +4,11 @@ import matplotlib.patches as mpatches
 import numpy as np
 
 csv_paths = [
-    "C:/Users/steam/Desktop/optimizing-convolution/graphs/datas/imsize2048.csv",
-    "C:/Users/steam/Desktop/optimizing-convolution/graphs/datas/imsize4096.csv",
-    "C:/Users/steam/Desktop/optimizing-convolution/graphs/datas/imsize8192.csv"
+    "C:/Users/steam/Desktop/optimizing-convolution/graphs/datas/imsize1536.csv",
+    "C:/Users/steam/Desktop/optimizing-convolution/graphs/datas/imsize3072.csv",
+    "C:/Users/steam/Desktop/optimizing-convolution/graphs/datas/imsize4608.csv"
 ]
-titles = ["2048*2048", "4096*4096", "8192*8192"]
+titles = ["1536*1536", "3072*3072", "4608*4608"]
 
 def format_kernel_names(kernel_names):
     updated_kernel_names = []
@@ -34,7 +34,7 @@ def format_kernel_names(kernel_names):
 
 def process_data(csv_path, size_title):
     df = pd.read_csv(csv_path, encoding='utf-16', usecols=["Kernel Name", "Metric Name", "Metric Unit", "Metric Value"])
-    kernel_names = df[df["Metric Name"] == "Duration"]["Kernel Name"].tolist()
+    kernel_names = df[df["Metric Name"] == "Duration"]["Kernel Name"]
     kernel_names = format_kernel_names(kernel_names)
     durations = df[df["Metric Name"] == "Duration"]
     duration_values = []
@@ -77,6 +77,7 @@ for metric_idx, ax in enumerate(ax):
     ax.set_xticks(x + width)
     ax.set_xticklabels(kernel_set, rotation=45, ha='right')
     ax.set_ylabel(metrics[metric_idx])
+    ax.set_xlabel("Çekirdek")
     ax.set_title(metrics[metric_idx])
 
 patches = [mpatches.Patch(color='white', label="Görüntü Boyutları:")]

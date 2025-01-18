@@ -3,12 +3,12 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 csv_paths = [
-    "C:/Users/steam/Desktop/optimizing-convolution/graphs/datas/imsize2048.csv",
-    "C:/Users/steam/Desktop/optimizing-convolution/graphs/datas/imsize4096.csv",
-    "C:/Users/steam/Desktop/optimizing-convolution/graphs/datas/imsize8192.csv"
+    "C:/Users/steam/Desktop/optimizing-convolution/graphs/datas/imsize1536.csv",
+    "C:/Users/steam/Desktop/optimizing-convolution/graphs/datas/imsize3072.csv",
+    "C:/Users/steam/Desktop/optimizing-convolution/graphs/datas/imsize4608.csv"
 ]
 
-titles = ["2048*2048", "4096*4096", "8192*8192"]
+titles = ["1536*1536", "3072*3072", "4608*4608"]
 colors = ['#A2CBE5', '#F4A5AE', '#A9D8B8']
 
 data = {

@@ -12,10 +12,11 @@ inline __device__ void shift_left(imtype arr[][3]) {
 	arr[2][1] = arr[2][2];
 }
 
-__constant__ float CM_Filter[3][3] = {{1 / 16.0f, 2 / 16.0f, 1 / 16.0f},
-									   {2 / 16.0f, 4 / 16.0f, 2 / 16.0f},
-									   {1 / 16.0f, 2 / 16.0f, 1 / 16.0f}};
-__device__ float GM_Filter[3][3] = {{1 / 16.0f, 2 / 16.0f, 1 / 16.0f},
+__device__ __constant__ float cMemFilter[3][3] = { {1 / 16.0f, 2 / 16.0f, 1 / 16.0f},
+									 {2 / 16.0f, 4 / 16.0f, 2 / 16.0f},
+									 {1 / 16.0f, 2 / 16.0f, 1 / 16.0f} };
+
+__device__ float gMemFilter[3][3] = {{1 / 16.0f, 2 / 16.0f, 1 / 16.0f},
 									 {2 / 16.0f, 4 / 16.0f, 2 / 16.0f},
 									 {1 / 16.0f, 2 / 16.0f, 1 / 16.0f}};
 
@@ -24,9 +25,9 @@ __global__ void GM_3x3(imtype* __restrict__ input, imtype* __restrict__ output, 
 	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * COARSENING_FACTOR;
 	int tx = blockIdx.y * blockDim.y + threadIdx.y;
 
-	imtype frame[3][3];
-
 	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		imtype frame[3][3];
+
 		frame[0][0] = input[(tx - 1) * cols + ty - 1];
 		frame[0][1] = input[(tx - 1) * cols + ty];
 		frame[0][2] = input[(tx - 1) * cols + ty + 1];
@@ -37,34 +38,34 @@ __global__ void GM_3x3(imtype* __restrict__ input, imtype* __restrict__ output, 
 		frame[2][1] = input[(tx + 1) * cols + ty];
 		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
-		output[(tx * cols + ty)] = (GM_Filter[0][0] * frame[0][0]
-		+ GM_Filter[0][1] * frame[0][1]
-		+ GM_Filter[0][2] * frame[0][2]
-		+ GM_Filter[1][0] * frame[1][0]
-		+ GM_Filter[1][1] * frame[1][1]
-		+ GM_Filter[1][2] * frame[1][2]
-		+ GM_Filter[2][0] * frame[2][0]
-		+ GM_Filter[2][1] * frame[2][1]
-		+ GM_Filter[2][2] * frame[2][2]);
+		output[(tx * cols + ty)] = (gMemFilter[0][0] * frame[0][0]
+		+ gMemFilter[0][1] * frame[0][1]
+		+ gMemFilter[0][2] * frame[0][2]
+		+ gMemFilter[1][0] * frame[1][0]
+		+ gMemFilter[1][1] * frame[1][1]
+		+ gMemFilter[1][2] * frame[1][2]
+		+ gMemFilter[2][0] * frame[2][0]
+		+ gMemFilter[2][1] * frame[2][1]
+		+ gMemFilter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < COARSENING_FACTOR; i++) {
 			int _ty = ty + i;
-			shift_left(frame);
-			if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			if (_ty < cols - 1) {
+				shift_left(frame);
 				frame[0][2] = input[(tx - 1) * cols + _ty + 1];
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				output[(tx * cols + _ty)] = (GM_Filter[0][0] * frame[0][0]
-				+ GM_Filter[0][1] * frame[0][1]
-				+ GM_Filter[0][2] * frame[0][2]
-				+ GM_Filter[1][0] * frame[1][0]
-				+ GM_Filter[1][1] * frame[1][1]
-				+ GM_Filter[1][2] * frame[1][2]
-				+ GM_Filter[2][0] * frame[2][0]
-				+ GM_Filter[2][1] * frame[2][1]
-				+ GM_Filter[2][2] * frame[2][2]);
+				output[(tx * cols + _ty)] = (gMemFilter[0][0] * frame[0][0]
+				+ gMemFilter[0][1] * frame[0][1]
+				+ gMemFilter[0][2] * frame[0][2]
+				+ gMemFilter[1][0] * frame[1][0]
+				+ gMemFilter[1][1] * frame[1][1]
+				+ gMemFilter[1][2] * frame[1][2]
+				+ gMemFilter[2][0] * frame[2][0]
+				+ gMemFilter[2][1] * frame[2][1]
+				+ gMemFilter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -94,34 +95,34 @@ __global__ void CM_3x3(imtype* __restrict__ input, imtype* __restrict__ output, 
 		frame[2][1] = input[(tx + 1) * cols + ty];
 		frame[2][2] = input[(tx + 1) * cols + ty + 1];
 
-		output[(tx * cols + ty)] = (GM_Filter[0][0] * frame[0][0]
-		+ CM_Filter[0][1] * frame[0][1]
-		+ CM_Filter[0][2] * frame[0][2]
-		+ CM_Filter[1][0] * frame[1][0]
-		+ CM_Filter[1][1] * frame[1][1]
-		+ CM_Filter[1][2] * frame[1][2]
-		+ CM_Filter[2][0] * frame[2][0]
-		+ CM_Filter[2][1] * frame[2][1]
-		+ CM_Filter[2][2] * frame[2][2]);
+		output[(tx * cols + ty)] = (cMemFilter[0][0] * frame[0][0]
+		+ cMemFilter[0][1] * frame[0][1]
+		+ cMemFilter[0][2] * frame[0][2]
+		+ cMemFilter[1][0] * frame[1][0]
+		+ cMemFilter[1][1] * frame[1][1]
+		+ cMemFilter[1][2] * frame[1][2]
+		+ cMemFilter[2][0] * frame[2][0]
+		+ cMemFilter[2][1] * frame[2][1]
+		+ cMemFilter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < COARSENING_FACTOR; i++) {
 			int _ty = ty + i;
 			shift_left(frame);
-			if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+			if (_ty > 0 && _ty < cols - 1) {
 				frame[0][2] = input[(tx - 1) * cols + _ty + 1];
 				frame[1][2] = input[tx * cols + _ty + 1];
 				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
 
-				output[(tx * cols + _ty)] = (GM_Filter[0][0] * frame[0][0]
-				+ CM_Filter[0][1] * frame[0][1]
-				+ CM_Filter[0][2] * frame[0][2]
-				+ CM_Filter[1][0] * frame[1][0]
-				+ CM_Filter[1][1] * frame[1][1]
-				+ CM_Filter[1][2] * frame[1][2]
-				+ CM_Filter[2][0] * frame[2][0]
-				+ CM_Filter[2][1] * frame[2][1]
-				+ CM_Filter[2][2] * frame[2][2]);
+				output[(tx * cols + _ty)] = (cMemFilter[0][0] * frame[0][0]
+				+ cMemFilter[0][1] * frame[0][1]
+				+ cMemFilter[0][2] * frame[0][2]
+				+ cMemFilter[1][0] * frame[1][0]
+				+ cMemFilter[1][1] * frame[1][1]
+				+ cMemFilter[1][2] * frame[1][2]
+				+ cMemFilter[2][0] * frame[2][0]
+				+ cMemFilter[2][1] * frame[2][1]
+				+ cMemFilter[2][2] * frame[2][2]);
 			}
 		}
 	}
@@ -132,130 +133,6 @@ template __global__ void CM_3x3<4>(imtype* __restrict__ input, imtype* __restric
 template __global__ void CM_3x3<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 template __global__ void CM_3x3<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 template __global__ void CM_3x3<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-
-template<int COARSENING_FACTOR>
-__global__ void GM_3x3_Vec(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
-{
-	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * COARSENING_FACTOR;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-
-	imtype vals[COARSENING_FACTOR] = { 0 };
-	imtype frame[3][3];
-
-	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		frame[0][0] = input[(tx - 1) * cols + ty - 1];
-		frame[0][1] = input[(tx - 1) * cols + ty];
-		frame[0][2] = input[(tx - 1) * cols + ty + 1];
-		frame[1][0] = input[tx * cols + ty - 1];
-		frame[1][1] = input[tx * cols + ty];
-		frame[1][2] = input[tx * cols + ty + 1];
-		frame[2][0] = input[(tx + 1) * cols + ty - 1];
-		frame[2][1] = input[(tx + 1) * cols + ty];
-		frame[2][2] = input[(tx + 1) * cols + ty + 1];
-
-		vals[0] = (GM_Filter[0][0] * frame[0][0]
-			+ GM_Filter[0][1] * frame[0][1]
-			+ GM_Filter[0][2] * frame[0][2]
-			+ GM_Filter[1][0] * frame[1][0]
-			+ GM_Filter[1][1] * frame[1][1]
-			+ GM_Filter[1][2] * frame[1][2]
-			+ GM_Filter[2][0] * frame[2][0]
-			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]);
-
-		#pragma unroll
-		for (int i = 1; i < COARSENING_FACTOR; i++) {
-			int _ty = ty + i;
-			shift_left(frame);
-			if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
-				frame[0][2] = input[(tx - 1) * cols + _ty + 1];
-				frame[1][2] = input[tx * cols + _ty + 1];
-				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
-
-				vals[i] = (GM_Filter[0][0] * frame[0][0]
-					+ GM_Filter[0][1] * frame[0][1]
-					+ GM_Filter[0][2] * frame[0][2]
-					+ GM_Filter[1][0] * frame[1][0]
-					+ GM_Filter[1][1] * frame[1][1]
-					+ GM_Filter[1][2] * frame[1][2]
-					+ GM_Filter[2][0] * frame[2][0]
-					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]);
-			}
-		}
-		for (int i = 0; i < COARSENING_FACTOR; i += 4) {
-			reinterpret_cast<imtype4*>(&output[(tx * cols + ty + i)])[0] = make_imtype4(vals[i], vals[i + 1], vals[i + 2], vals[i + 3]);
-		}
-	}
-}
-
-template __global__ void GM_3x3_Vec<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void GM_3x3_Vec<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void GM_3x3_Vec<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void GM_3x3_Vec<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void GM_3x3_Vec<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-
-template<int COARSENING_FACTOR>
-__global__ void CM_3x3_Vec(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
-{
-	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * COARSENING_FACTOR;
-	int tx = blockIdx.y * blockDim.y + threadIdx.y;
-
-	imtype vals[COARSENING_FACTOR] = { 0 };
-	imtype frame[3][3];
-
-	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
-		frame[0][0] = input[(tx - 1) * cols + ty - 1];
-		frame[0][1] = input[(tx - 1) * cols + ty];
-		frame[0][2] = input[(tx - 1) * cols + ty + 1];
-		frame[1][0] = input[tx * cols + ty - 1];
-		frame[1][1] = input[tx * cols + ty];
-		frame[1][2] = input[tx * cols + ty + 1];
-		frame[2][0] = input[(tx + 1) * cols + ty - 1];
-		frame[2][1] = input[(tx + 1) * cols + ty];
-		frame[2][2] = input[(tx + 1) * cols + ty + 1];
-
-		vals[0] = (GM_Filter[0][0] * frame[0][0]
-			+ CM_Filter[0][1] * frame[0][1]
-			+ CM_Filter[0][2] * frame[0][2]
-			+ CM_Filter[1][0] * frame[1][0]
-			+ CM_Filter[1][1] * frame[1][1]
-			+ CM_Filter[1][2] * frame[1][2]
-			+ CM_Filter[2][0] * frame[2][0]
-			+ CM_Filter[2][1] * frame[2][1]
-			+ CM_Filter[2][2] * frame[2][2]);
-
-		#pragma unroll
-		for (int i = 1; i < COARSENING_FACTOR; i++) {
-			int _ty = ty + i;
-			shift_left(frame);
-			if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
-				frame[0][2] = input[(tx - 1) * cols + _ty + 1];
-				frame[1][2] = input[tx * cols + _ty + 1];
-				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
-
-				vals[i] = (GM_Filter[0][0] * frame[0][0]
-					+ CM_Filter[0][1] * frame[0][1]
-					+ CM_Filter[0][2] * frame[0][2]
-					+ CM_Filter[1][0] * frame[1][0]
-					+ CM_Filter[1][1] * frame[1][1]
-					+ CM_Filter[1][2] * frame[1][2]
-					+ CM_Filter[2][0] * frame[2][0]
-					+ CM_Filter[2][1] * frame[2][1]
-					+ CM_Filter[2][2] * frame[2][2]);
-			}
-		}
-		for (int i = 0; i < COARSENING_FACTOR; i += 4) {
-			reinterpret_cast<imtype4*>(&output[(tx * cols + ty + i)])[0] = make_imtype4(vals[i], vals[i + 1], vals[i + 2], vals[i + 3]);
-		}
-	}
-}
-
-template __global__ void CM_3x3_Vec<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void CM_3x3_Vec<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void CM_3x3_Vec<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void CM_3x3_Vec<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
-template __global__ void CM_3x3_Vec<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 
 
 template<int COARSENING_FACTOR>
@@ -307,15 +184,15 @@ __global__ void SM_3x3(imtype* __restrict__ input, imtype* __restrict__ output, 
 		frame[2][1] = cache[cx + 1][cy];
 		frame[2][2] = cache[cx + 1][cy + 1];
 
-		output[tx * cols + ty] = (GM_Filter[0][0] * frame[0][0]
-			+ GM_Filter[0][1] * frame[0][1]
-			+ GM_Filter[0][2] * frame[0][2]
-			+ GM_Filter[1][0] * frame[1][0]
-			+ GM_Filter[1][1] * frame[1][1]
-			+ GM_Filter[1][2] * frame[1][2]
-			+ GM_Filter[2][0] * frame[2][0]
-			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]);
+		output[tx * cols + ty] = (gMemFilter[0][0] * frame[0][0]
+			+ gMemFilter[0][1] * frame[0][1]
+			+ gMemFilter[0][2] * frame[0][2]
+			+ gMemFilter[1][0] * frame[1][0]
+			+ gMemFilter[1][1] * frame[1][1]
+			+ gMemFilter[1][2] * frame[1][2]
+			+ gMemFilter[2][0] * frame[2][0]
+			+ gMemFilter[2][1] * frame[2][1]
+			+ gMemFilter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < COARSENING_FACTOR; i++) {
@@ -327,19 +204,155 @@ __global__ void SM_3x3(imtype* __restrict__ input, imtype* __restrict__ output, 
 			frame[2][2] = cache[cx + 1][_cy + 1];
 
 			if (_ty < cols - 1) {
-				output[tx * cols + _ty] = (GM_Filter[0][0] * frame[0][0]
-					+ GM_Filter[0][1] * frame[0][1]
-					+ GM_Filter[0][2] * frame[0][2]
-					+ GM_Filter[1][0] * frame[1][0]
-					+ GM_Filter[1][1] * frame[1][1]
-					+ GM_Filter[1][2] * frame[1][2]
-					+ GM_Filter[2][0] * frame[2][0]
-					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]);
+				output[tx * cols + _ty] = (gMemFilter[0][0] * frame[0][0]
+					+ gMemFilter[0][1] * frame[0][1]
+					+ gMemFilter[0][2] * frame[0][2]
+					+ gMemFilter[1][0] * frame[1][0]
+					+ gMemFilter[1][1] * frame[1][1]
+					+ gMemFilter[1][2] * frame[1][2]
+					+ gMemFilter[2][0] * frame[2][0]
+					+ gMemFilter[2][1] * frame[2][1]
+					+ gMemFilter[2][2] * frame[2][2]);
 			}
 		}
 	}
 }
+
+template<int COARSENING_FACTOR>
+__global__ void GM_3x3_Vec(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * COARSENING_FACTOR;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	imtype vals[COARSENING_FACTOR] = { 0 };
+	imtype frame[3][3];
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
+
+		vals[0] = (gMemFilter[0][0] * frame[0][0]
+			+ gMemFilter[0][1] * frame[0][1]
+			+ gMemFilter[0][2] * frame[0][2]
+			+ gMemFilter[1][0] * frame[1][0]
+			+ gMemFilter[1][1] * frame[1][1]
+			+ gMemFilter[1][2] * frame[1][2]
+			+ gMemFilter[2][0] * frame[2][0]
+			+ gMemFilter[2][1] * frame[2][1]
+			+ gMemFilter[2][2] * frame[2][2]);
+
+		#pragma unroll
+		for (int i = 1; i < COARSENING_FACTOR; i++) {
+			int _ty = ty + i;
+			shift_left(frame);
+			if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+				frame[0][2] = input[(tx - 1) * cols + _ty + 1];
+				frame[1][2] = input[tx * cols + _ty + 1];
+				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
+
+				vals[i] = (gMemFilter[0][0] * frame[0][0]
+					+ gMemFilter[0][1] * frame[0][1]
+					+ gMemFilter[0][2] * frame[0][2]
+					+ gMemFilter[1][0] * frame[1][0]
+					+ gMemFilter[1][1] * frame[1][1]
+					+ gMemFilter[1][2] * frame[1][2]
+					+ gMemFilter[2][0] * frame[2][0]
+					+ gMemFilter[2][1] * frame[2][1]
+					+ gMemFilter[2][2] * frame[2][2]);
+			}
+		}
+		if (COARSENING_FACTOR == 2) {
+			reinterpret_cast<imtype2*>(&output[(tx * cols + ty)])[0] = make_imtype2(vals[0], vals[1]);
+		}
+		else {
+			#pragma unroll
+			for (int i = 0; i < COARSENING_FACTOR; i += 4) {
+				reinterpret_cast<imtype4*>(&output[(tx * cols + ty + i)])[0] = make_imtype4(vals[i], vals[i + 1], vals[i + 2], vals[i + 3]);
+			}
+		}
+	}
+}
+
+template __global__ void GM_3x3_Vec<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3_Vec<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3_Vec<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3_Vec<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void GM_3x3_Vec<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+
+template<int COARSENING_FACTOR>
+__global__ void CM_3x3_Vec(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
+{
+	int ty = (blockIdx.x * blockDim.x + threadIdx.x) * COARSENING_FACTOR;
+	int tx = blockIdx.y * blockDim.y + threadIdx.y;
+
+	imtype vals[COARSENING_FACTOR] = { 0 };
+	imtype frame[3][3];
+
+	if ((tx > 0 && tx < rows - 1) && (ty > 0 && ty < cols - 1)) {
+		frame[0][0] = input[(tx - 1) * cols + ty - 1];
+		frame[0][1] = input[(tx - 1) * cols + ty];
+		frame[0][2] = input[(tx - 1) * cols + ty + 1];
+		frame[1][0] = input[tx * cols + ty - 1];
+		frame[1][1] = input[tx * cols + ty];
+		frame[1][2] = input[tx * cols + ty + 1];
+		frame[2][0] = input[(tx + 1) * cols + ty - 1];
+		frame[2][1] = input[(tx + 1) * cols + ty];
+		frame[2][2] = input[(tx + 1) * cols + ty + 1];
+
+		vals[0] = (cMemFilter[0][0] * frame[0][0]
+			+ cMemFilter[0][1] * frame[0][1]
+			+ cMemFilter[0][2] * frame[0][2]
+			+ cMemFilter[1][0] * frame[1][0]
+			+ cMemFilter[1][1] * frame[1][1]
+			+ cMemFilter[1][2] * frame[1][2]
+			+ cMemFilter[2][0] * frame[2][0]
+			+ cMemFilter[2][1] * frame[2][1]
+			+ cMemFilter[2][2] * frame[2][2]);
+
+		#pragma unroll
+		for (int i = 1; i < COARSENING_FACTOR; i++) {
+			int _ty = ty + i;
+			shift_left(frame);
+			if ((tx > 0 && tx < rows - 1) && (_ty > 0 && _ty < cols - 1)) {
+				frame[0][2] = input[(tx - 1) * cols + _ty + 1];
+				frame[1][2] = input[tx * cols + _ty + 1];
+				frame[2][2] = input[(tx + 1) * cols + _ty + 1];
+
+				vals[i] = (cMemFilter[0][0] * frame[0][0]
+					+ cMemFilter[0][1] * frame[0][1]
+					+ cMemFilter[0][2] * frame[0][2]
+					+ cMemFilter[1][0] * frame[1][0]
+					+ cMemFilter[1][1] * frame[1][1]
+					+ cMemFilter[1][2] * frame[1][2]
+					+ cMemFilter[2][0] * frame[2][0]
+					+ cMemFilter[2][1] * frame[2][1]
+					+ cMemFilter[2][2] * frame[2][2]);
+			}
+		}
+		if (COARSENING_FACTOR == 2) {
+			reinterpret_cast<imtype2*>(&output[(tx * cols + ty)])[0] = make_imtype2(vals[0], vals[1]);
+		}
+		else {
+			#pragma unroll
+			for (int i = 0; i < COARSENING_FACTOR; i += 4) {
+				reinterpret_cast<imtype4*>(&output[(tx * cols + ty + i)])[0] = make_imtype4(vals[i], vals[i + 1], vals[i + 2], vals[i + 3]);
+			}
+		}
+	}
+}
+
+template __global__ void CM_3x3_Vec<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3_Vec<4>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3_Vec<8>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3_Vec<12>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
+template __global__ void CM_3x3_Vec<16>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
 
 template<int COARSENING_FACTOR>
 __global__ void SM_3x3_Vec(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols)
@@ -424,15 +437,15 @@ __global__ void SM_3x3_Vec(imtype* __restrict__ input, imtype* __restrict__ outp
 		frame[2][1] = cache[cx + 1][cy];
 		frame[2][2] = cache[cx + 1][cy + 1];
 
-		vals[0] = (GM_Filter[0][0] * frame[0][0]
-			+ GM_Filter[0][1] * frame[0][1]
-			+ GM_Filter[0][2] * frame[0][2]
-			+ GM_Filter[1][0] * frame[1][0]
-			+ GM_Filter[1][1] * frame[1][1]
-			+ GM_Filter[1][2] * frame[1][2]
-			+ GM_Filter[2][0] * frame[2][0]
-			+ GM_Filter[2][1] * frame[2][1]
-			+ GM_Filter[2][2] * frame[2][2]);
+		vals[0] = (gMemFilter[0][0] * frame[0][0]
+			+ gMemFilter[0][1] * frame[0][1]
+			+ gMemFilter[0][2] * frame[0][2]
+			+ gMemFilter[1][0] * frame[1][0]
+			+ gMemFilter[1][1] * frame[1][1]
+			+ gMemFilter[1][2] * frame[1][2]
+			+ gMemFilter[2][0] * frame[2][0]
+			+ gMemFilter[2][1] * frame[2][1]
+			+ gMemFilter[2][2] * frame[2][2]);
 
 		#pragma unroll
 		for (int i = 1; i < COARSENING_FACTOR; i++) {
@@ -444,15 +457,15 @@ __global__ void SM_3x3_Vec(imtype* __restrict__ input, imtype* __restrict__ outp
 			frame[2][2] = cache[cx + 1][_cy + 1];
 
 			if (_ty < cols - 1) {
-				vals[i] = (GM_Filter[0][0] * frame[0][0]
-					+ GM_Filter[0][1] * frame[0][1]
-					+ GM_Filter[0][2] * frame[0][2]
-					+ GM_Filter[1][0] * frame[1][0]
-					+ GM_Filter[1][1] * frame[1][1]
-					+ GM_Filter[1][2] * frame[1][2]
-					+ GM_Filter[2][0] * frame[2][0]
-					+ GM_Filter[2][1] * frame[2][1]
-					+ GM_Filter[2][2] * frame[2][2]);
+				vals[i] = (gMemFilter[0][0] * frame[0][0]
+					+ gMemFilter[0][1] * frame[0][1]
+					+ gMemFilter[0][2] * frame[0][2]
+					+ gMemFilter[1][0] * frame[1][0]
+					+ gMemFilter[1][1] * frame[1][1]
+					+ gMemFilter[1][2] * frame[1][2]
+					+ gMemFilter[2][0] * frame[2][0]
+					+ gMemFilter[2][1] * frame[2][1]
+					+ gMemFilter[2][2] * frame[2][2]);
 			}
 		}
 		if (COARSENING_FACTOR == 2) {
@@ -465,7 +478,6 @@ __global__ void SM_3x3_Vec(imtype* __restrict__ input, imtype* __restrict__ outp
 		}
 	}
 }
-
 
 #ifndef INSUFFICIENT_MEMORY_FOR_CF2
 template __global__ void SM_3x3<2>(imtype* __restrict__ input, imtype* __restrict__ output, const int rows, const int cols);
@@ -504,6 +516,14 @@ void saveImage(const void* data, int rows, int cols, const std::string& filename
 #endif
 }
 
+/*That supports only for coarsening in X dimension*/
+inline dim3 generateGridDimension(int blockDimx, int blockDimy, int coarseningFactor, int rows, int cols){
+return dim3(
+   	(cols + (blockDimx * coarseningFactor) - 1) / (blockDimx * coarseningFactor),
+    (rows + blockDimy - 1) / blockDimy
+);
+}
+
 void testOutputs(cv::Mat* inputImg, cv::Mat* outputImg)
 {
 	imtype* d_input = nullptr;
@@ -514,14 +534,14 @@ void testOutputs(cv::Mat* inputImg, cv::Mat* outputImg)
 	const int cols = (*inputImg).cols;
 	const int rows = (*inputImg).rows;
 	const int size = cols * rows * sizeof(imtype);
-
+	
 	dim3 block(BLOCKDIMX,BLOCKDIMY);
-	dim3 grid((cols + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-	dim3 grid_cf2(((cols / 2) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-	dim3 grid_cf4(((cols / 4) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-	dim3 grid_cf8(((cols / 8) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-	dim3 grid_cf12(((cols / 12) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-	dim3 grid_cf16(((cols / 16) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+	dim3 grid = generateGridDimension(BLOCKDIMX, BLOCKDIMY, 1, rows, cols);
+	dim3 grid_cf2 = generateGridDimension(BLOCKDIMX, BLOCKDIMY, 2, rows, cols);
+	dim3 grid_cf4 = generateGridDimension(BLOCKDIMX, BLOCKDIMY, 4, rows, cols);
+	dim3 grid_cf8 = generateGridDimension(BLOCKDIMX, BLOCKDIMY, 8, rows, cols);
+	dim3 grid_cf12 = generateGridDimension(BLOCKDIMX, BLOCKDIMY, 12, rows, cols);
+	dim3 grid_cf16 = generateGridDimension(BLOCKDIMX, BLOCKDIMY, 16, rows, cols);
 
 	CHECK_CUDA_ERROR(cudaHostRegister(h_output, size, cudaHostRegisterPortable));
 	CHECK_CUDA_ERROR(cudaHostRegister(h_input, size, cudaHostRegisterPortable));
@@ -913,7 +933,9 @@ std::map<KernelType, kernelPtr> kernelMap = {
 	{KernelType::SM_3x3_CF4_Vec, &SM_3x3_Vec<4>},
 	{KernelType::SM_3x3_CF8_Vec, &SM_3x3_Vec<8>},
 	{KernelType::SM_3x3_CF12_Vec, &SM_3x3_Vec<12>},
-	{KernelType::SM_3x3_CF16_Vec, &SM_3x3_Vec<16>}
+	{KernelType::SM_3x3_CF16_Vec, &SM_3x3_Vec<16>},
+	{KernelType::ArrayFire, &SM_3x3_Vec<16>},
+	{KernelType::OpenCV, &SM_3x3_Vec<16>}
 };
 
 void callKernel(cv::Mat* inputImg, cv::Mat* outputImg, KernelType kernelType){
@@ -926,13 +948,13 @@ void callKernel(cv::Mat* inputImg, cv::Mat* outputImg, KernelType kernelType){
 	const int rows = (*inputImg).rows;
 	const int size = cols * rows * sizeof(imtype);
 
-	dim3 block(BLOCKDIMX,BLOCKDIMY);
-	dim3 grid((cols + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-	dim3 grid_cf2(((cols / 2) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-	dim3 grid_cf4(((cols / 4) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-	dim3 grid_cf8(((cols / 8) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-	dim3 grid_cf12(((cols / 12) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
-	dim3 grid_cf16(((cols / 16) + block.x - 1) / block.x, (rows + block.y - 1) / block.y);
+	dim3 block(BLOCKDIMX, BLOCKDIMY);
+	dim3 grid = generateGridDimension(BLOCKDIMX, BLOCKDIMY, 1, rows, cols);
+	dim3 grid_cf2 = generateGridDimension(BLOCKDIMX, BLOCKDIMY, 2, rows, cols);
+	dim3 grid_cf4 = generateGridDimension(BLOCKDIMX, BLOCKDIMY, 4, rows, cols);
+	dim3 grid_cf8 = generateGridDimension(BLOCKDIMX, BLOCKDIMY, 8, rows, cols);
+	dim3 grid_cf12 = generateGridDimension(BLOCKDIMX, BLOCKDIMY, 12, rows, cols);
+	dim3 grid_cf16 = generateGridDimension(BLOCKDIMX, BLOCKDIMY, 16, rows, cols);
 
 	CHECK_CUDA_ERROR(cudaHostRegister(h_output, size, cudaHostRegisterPortable));
 	CHECK_CUDA_ERROR(cudaHostRegister(h_input, size, cudaHostRegisterPortable));
@@ -1091,6 +1113,6 @@ void launchKernels(cv::Mat* inputImg, cv::Mat* outputImg){
 	callKernel(inputImg, outputImg, KernelType::SM_3x3_CF12_Vec);
 	callKernel(inputImg, outputImg, KernelType::SM_3x3_CF16_Vec);
 
-	// callKernel(inputImg, outputImg, KernelType::ArrayFire);
-	// callKernel(inputImg, outputImg, KernelType::OpenCV);
+	//callKernel(inputImg, outputImg, KernelType::ArrayFire);
+	//callKernel(inputImg, outputImg, KernelType::OpenCV);
 }

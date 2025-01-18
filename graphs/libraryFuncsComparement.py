@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 def plot_execution_times(image_sizes, x_titles, execution_times, colors, output_file):
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=(12, 9))
     bar_width = 0.25
     index = range(len(x_titles))
 
@@ -23,17 +23,17 @@ def plot_execution_times(image_sizes, x_titles, execution_times, colors, output_
     plt.show()
 
 def main():
-    image_sizes = ["2048*2048", "4096*4096", "8192*8192"]
+    titles = ["1536*1536", "3072*3072", "4608*4608"]
     x_titles = ["GM", "CM_CF12_Vec", "linearRowFilter +\nlinearColumnFilter\n(OpenCV)", "convolve2d\n(ArrayFire)"]
     execution_times = [
-        [245, 82, 228, 368],  # 2048
-        [971, 306, 913, 1453],  # 4096
-        [3885, 1187, 3776, 5853]  # 8192
+        [143, 48.64, 132.32, 206],  # 1536
+        [565.54, 175.23, 512.19, 821.55],  # 3072
+        [1230, 396.22, 1173.95, 1840]  # 4608
     ]
     colors = ['#A2CBE5', '#F4A5AE', '#A9D8B8']
     output_file = 'libraryFuncsComparement.png'
 
-    plot_execution_times(image_sizes, x_titles, execution_times, colors, output_file)
+    plot_execution_times(titles, x_titles, execution_times, colors, output_file)
 
 if __name__ == "__main__":
     main()

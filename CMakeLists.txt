@@ -32,6 +32,7 @@ set(CUDA_HEADERS
 
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3 -arch=sm_75 --expt-relaxed-constexpr -lineinfo")
 
+
 add_executable(${PROJECT_NAME}
     ${CUDA_FILES}
     ${CUDA_HEADERS}
